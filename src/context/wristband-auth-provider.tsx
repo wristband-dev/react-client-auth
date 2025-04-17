@@ -1,9 +1,14 @@
-import React, { PropsWithChildren, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { WristbandAuthContext } from './wristband-auth-context';
-import { AuthStatus, IWristbandAuthProviderProps, SessionResponse } from '../types/types';
-import { isUnauthorizedError, redirectToLogin, redirectToLogout } from '../utils/auth';
-import wristbandApiClient from '../api/wristband-api-client';
+import { AuthStatus, IWristbandAuthProviderProps, SessionResponse } from '../types/auth-provider-types';
+import { isUnauthorizedError } from '../utils/auth-utils';
+import apiClient from '../api/api-client';
+import {
+  resolveAuthProviderLoginUrl,
+  validateAuthProviderLogoutUrl,
+  validateAuthProviderSessionUrl,
+} from '../utils/auth-provider-utils';
 
 /**
  * WristbandAuthProvider establishes an authenticated session with your backend server
@@ -71,16 +76,9 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   sessionUrl,
   transformSessionMetadata,
 }: IWristbandAuthProviderProps<TSessionMetaData>) {
-  // Runtime validation for JSX
-  if (!loginUrl) {
-    throw new Error('WristbandAuthProvider: [loginUrl] is required');
-  }
-  if (!logoutUrl) {
-    throw new Error('WristbandAuthProvider: [logoutUrl] is required');
-  }
-  if (!sessionUrl) {
-    throw new Error('WristbandAuthProvider: [sessionUrl] is required');
-  }
+  const resolvedLoginUrl = resolveAuthProviderLoginUrl(loginUrl);
+  validateAuthProviderLogoutUrl(logoutUrl);
+  validateAuthProviderSessionUrl(sessionUrl);
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -104,10 +102,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
       try {
         // The session API will let React know if the user has a previously authenticated session.
         // If so, it will initialize session data.
-        const response = await wristbandApiClient.get<SessionResponse>(sessionUrl, {
-          xsrfCookieName: csrfCookieName,
-          xsrfHeaderName: csrfHeaderName,
-        });
+        const response = await apiClient.get<SessionResponse>(sessionUrl, { csrfCookieName, csrfHeaderName });
         const { userId, tenantId, metadata: rawMetadata } = response.data;
 
         // Execute side effects callback before updating state if provided
@@ -134,9 +129,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
           setIsLoading(false);
         } else {
           // Don't call logout on 401 to preserve the current page for when the user returns after re-authentication.
-          isUnauthorizedError(error)
-            ? await redirectToLogin(loginUrl, { returnUrl: encodeURI(window.location.href) })
-            : await redirectToLogout(logoutUrl);
+          window.location.href = isUnauthorizedError(error) ? resolvedLoginUrl : logoutUrl;
         }
       }
     };

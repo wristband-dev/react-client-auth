@@ -1,5 +1,5 @@
-// index.test.ts
 import { describe, it, expect } from 'vitest';
+
 import * as api from './index';
 
 describe('Public API exports', () => {
@@ -28,7 +28,7 @@ describe('Public API exports', () => {
   it('should export utility functions', () => {
     expect(api.redirectToLogin).toBeDefined();
     expect(typeof api.redirectToLogin).toBe('function');
-    
+
     expect(api.redirectToLogout).toBeDefined();
     expect(typeof api.redirectToLogout).toBe('function');
   });
@@ -40,20 +40,20 @@ describe('Public API exports', () => {
       'useWristbandSession',
       'AuthStatus',
       'redirectToLogin',
-      'redirectToLogout'
+      'redirectToLogout',
     ];
-    
+
     // Get all keys that aren't types
     const actualExports = Object.keys(api);
-    
+
     // Ensure all expected exports exist
-    expectedExports.forEach(exportName => {
+    expectedExports.forEach((exportName) => {
       expect(actualExports).toContain(exportName);
     });
-    
+
     // Ensure there are no unexpected exports
     expect(actualExports.length).toBe(expectedExports.length);
-    actualExports.forEach(exportName => {
+    actualExports.forEach((exportName) => {
       expect(expectedExports).toContain(exportName);
     });
   });

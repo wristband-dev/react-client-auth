@@ -3,7 +3,7 @@
   "description": "A lightweight React SDK that pairs with your backend server auth to initialize and sync frontend sessions via secure session cookies.",
   "author": "Wristband",
   "homepage": "https://wristband.dev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "sideEffects": false,
   "type": "module",
@@ -45,6 +45,10 @@
     "build:esm": "tsc -p config/tsconfig.esm.json",
     "build:types": "tsc -p config/tsconfig.types.json",
     "clean": "rimraf dist",
+    "package": "npm run build && npm pack",
+    "prepublishOnly": "pinst --disable",
+    "postinstall": "husky install",
+    "postpublish": "pinst --enable",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
@@ -71,13 +75,7 @@
     "react": ">=17.0.0",
     "react-dom": ">=17.0.0"
   },
-  "dependencies": {
-    "axios": "^1.8.4"
-  },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^28.0.3",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-typescript": "^12.1.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22.14.1",
@@ -99,10 +97,9 @@
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "msw": "^2.7.4",
+    "pinst": "^3.0.0",
     "prettier": "^2.8.8",
     "rimraf": "^5.0.0",
-    "rollup": "^4.40.0",
-    "rollup-plugin-dts": "^6.2.1",
     "tslib": "^2.8.1",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"

@@ -4,7 +4,7 @@ import { render, screen, renderHook } from '@testing-library/react';
 
 import { useWristbandAuth } from './use-wristband-auth';
 import { WristbandAuthContext } from '../context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext } from '../types/types';
+import { AuthStatus, IWristbandAuthContext } from '../types/auth-provider-types';
 
 describe('useWristbandAuth', () => {
   // Reset any mocks before each test
@@ -13,7 +13,6 @@ describe('useWristbandAuth', () => {
   });
 
   it('should return authentication state from context', () => {
-    // Arrange
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
@@ -21,24 +20,22 @@ describe('useWristbandAuth', () => {
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
-      updateMetadata: vi.fn()
+      updateMetadata: vi.fn(),
     };
 
     // Create a wrapper that provides the mock context
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <WristbandAuthContext.Provider value={contextValue}>
-        {children}
-      </WristbandAuthContext.Provider>
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
     );
 
-    // Act - Use the hook with the provided context
+    // Use the hook with the provided context
     const { result } = renderHook(() => useWristbandAuth(), { wrapper });
 
-    // Assert - The hook should return only the specified properties
+    // The hook should return only the specified properties
     expect(result.current).toEqual({
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED
+      authStatus: AuthStatus.AUTHENTICATED,
     });
 
     // Verify that other properties are not included in the returned object
@@ -48,7 +45,7 @@ describe('useWristbandAuth', () => {
   });
 
   it('should throw error when used outside of WristbandAuthProvider', () => {
-    // Arrange & Act - Attempt to use the hook without a provider
+    // Attempt to use the hook without a provider
     const consoleError = console.error;
     console.error = vi.fn(); // Suppress React error logs
 
@@ -57,11 +54,12 @@ describe('useWristbandAuth', () => {
       renderHook(() => useWristbandAuth());
     }).toThrow('useWristbandAuth() must be used within a WristbandAuthProvider.');
 
-    console.error = consoleError; // Restore console.error
+    // Restore console.error
+    console.error = consoleError;
   });
 
   it('should work correctly in a component', () => {
-    // Arrange - Create a test component that uses the hook
+    // Create a test component that uses the hook
     const TestComponent = () => {
       const { isAuthenticated, isLoading, authStatus } = useWristbandAuth();
       return (
@@ -80,17 +78,17 @@ describe('useWristbandAuth', () => {
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
-      updateMetadata: vi.fn()
+      updateMetadata: vi.fn(),
     };
 
-    // Act - Render the test component with the context provider
+    // Render the test component with the context provider
     render(
       <WristbandAuthContext.Provider value={contextValue}>
         <TestComponent />
       </WristbandAuthContext.Provider>
     );
 
-    // Assert - The component should render with the correct values
+    // The component should render with the correct values
     expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
     expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
     expect(screen.getByTestId('is-loading').textContent).toBe('false');
@@ -107,13 +105,13 @@ describe('useWristbandAuth', () => {
           userId: '',
           tenantId: '',
           metadata: {},
-          updateMetadata: vi.fn()
+          updateMetadata: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           isAuthenticated: false,
           isLoading: true,
-          authStatus: AuthStatus.LOADING
-        }
+          authStatus: AuthStatus.LOADING,
+        },
       },
       {
         contextValue: {
@@ -123,13 +121,13 @@ describe('useWristbandAuth', () => {
           userId: 'user-123',
           tenantId: 'tenant-456',
           metadata: { role: 'admin' },
-          updateMetadata: vi.fn()
+          updateMetadata: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           isAuthenticated: true,
           isLoading: false,
-          authStatus: AuthStatus.AUTHENTICATED
-        }
+          authStatus: AuthStatus.AUTHENTICATED,
+        },
       },
       {
         contextValue: {
@@ -139,22 +137,20 @@ describe('useWristbandAuth', () => {
           userId: '',
           tenantId: '',
           metadata: {},
-          updateMetadata: vi.fn()
+          updateMetadata: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           isAuthenticated: false,
           isLoading: false,
-          authStatus: AuthStatus.UNAUTHENTICATED
-        }
-      }
+          authStatus: AuthStatus.UNAUTHENTICATED,
+        },
+      },
     ];
 
     // Test each state
     testStates.forEach(({ contextValue, expected }) => {
       const wrapper = ({ children }: { children: ReactNode }) => (
-        <WristbandAuthContext.Provider value={contextValue}>
-          {children}
-        </WristbandAuthContext.Provider>
+        <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
       );
 
       const { result } = renderHook(() => useWristbandAuth(), { wrapper });

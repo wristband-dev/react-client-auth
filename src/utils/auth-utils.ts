@@ -1,6 +1,8 @@
-import { AxiosError } from 'axios';
+import { ApiError } from '../types/api-client-types';
+import { LoginRedirectConfig, LogoutRedirectConfig } from '../types/util-types';
 
-import { LoginRedirectConfig, LogoutRedirectConfig } from '../types/types';
+const reservedLoginQueryKeys = ['login_hint', 'return_url', 'tenant_domain', 'tenant_custom_domain'];
+const reservedLogoutQueryKeys = ['tenant_domain', 'tenant_custom_domain'];
 
 /**
  * Redirects the user to your backend server's Login Endpoint with optional configuration parameters.
@@ -12,6 +14,7 @@ import { LoginRedirectConfig, LogoutRedirectConfig } from '../types/types';
  * @param {string} loginUrl - The login endpoint URL that handles authentication
  * @param {LoginRedirectConfig} config - Optional configuration for customizing the login experience
  * @returns {Promise<void>} A promise that resolves when the redirect is triggered
+ * @throws {TypeError} If loginUrl is undefined, null, or empty.
  *
  * @example
  * // Basic redirect to login endpoint
@@ -37,18 +40,39 @@ import { LoginRedirectConfig, LogoutRedirectConfig } from '../types/types';
  *   tenantCustomDomain: 'auth.acme.com'
  * });
  */
-export async function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = {}) {
-  const searchParamsString = new URLSearchParams({
+export function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = {}) {
+  if (!loginUrl) {
+    throw new TypeError('Redirect To Login: [loginUrl] is required');
+  }
+
+  let resolvedUrl: URL;
+  try {
+    resolvedUrl = new URL(loginUrl, window.location.origin);
+  } catch {
+    throw new TypeError(`Invalid loginUrl: "${loginUrl}" is not a valid URL`);
+  }
+
+  for (const key of reservedLoginQueryKeys) {
+    if (resolvedUrl.searchParams.has(key)) {
+      throw new Error(`loginUrl must not include reserved query param: "${key}"`);
+    }
+  }
+
+  const queryParams: URLSearchParams = new URLSearchParams({
     ...(config.loginHint ? { login_hint: config.loginHint } : {}),
     ...(config.returnUrl
       ? { return_url: encodeURI(config.returnUrl) }
       : { return_url: encodeURI(window.location.href) }),
     ...(config.tenantDomain ? { tenant_domain: config.tenantDomain } : {}),
     ...(config.tenantCustomDomain ? { tenant_custom_domain: config.tenantCustomDomain } : {}),
-  }).toString();
-  const query = searchParamsString ? `?${searchParamsString}` : '';
+  });
 
-  window.location.href = `${loginUrl}${query}`;
+  resolvedUrl.searchParams.forEach((value, key) => {
+    queryParams.append(key, value);
+  });
+
+  resolvedUrl.search = queryParams.toString();
+  window.location.href = resolvedUrl.toString();
 }
 
 /**
@@ -59,6 +83,7 @@ export async function redirectToLogin(loginUrl: string, config: LoginRedirectCon
  * @param {string} logoutUrl - The URL of your server's Logout Endpoint
  * @param {LogoutRedirectConfig} config - Optional configuration for the logout redirect
  * @returns {Promise<void>} A promise that resolves when the redirect is triggered
+ * @throws {TypeError} If logoutUrl is undefined, null, or empty.
  *
  * @example
  * // Basic redirect to logout endpoint
@@ -76,85 +101,80 @@ export async function redirectToLogin(loginUrl: string, config: LoginRedirectCon
  *   tenantCustomDomain: 'auth.acme.com'
  * });
  */
-export async function redirectToLogout(logoutUrl: string, config: LogoutRedirectConfig = {}) {
-  const searchParamsString = new URLSearchParams({
+export function redirectToLogout(logoutUrl: string, config: LogoutRedirectConfig = {}) {
+  if (!logoutUrl) {
+    throw new TypeError('Redirect To Logout: [logoutUrl] is required');
+  }
+
+  let resolvedUrl: URL;
+  try {
+    resolvedUrl = new URL(logoutUrl, window.location.origin);
+  } catch {
+    throw new TypeError(`Invalid logoutUrl: "${logoutUrl}" is not a valid URL`);
+  }
+
+  for (const key of reservedLogoutQueryKeys) {
+    if (resolvedUrl.searchParams.has(key)) {
+      throw new Error(`logoutUrl must not include reserved query param: "${key}"`);
+    }
+  }
+
+  const queryParams: URLSearchParams = new URLSearchParams({
     ...(config.tenantDomain ? { tenant_domain: config.tenantDomain } : {}),
     ...(config.tenantCustomDomain ? { tenant_custom_domain: config.tenantCustomDomain } : {}),
-  }).toString();
-  const query = searchParamsString ? `?${searchParamsString}` : '';
+  });
 
-  window.location.href = `${logoutUrl}${query}`;
+  resolvedUrl.searchParams.forEach((value, key) => {
+    queryParams.append(key, value);
+  });
+
+  resolvedUrl.search = queryParams.toString();
+  window.location.href = resolvedUrl.toString();
 }
 
 /**
- * Checks if an error represents a specific HTTP status code error.
+ * Checks if an error represents an HTTP error with a specific error status code.
  *
- * @param {unknown} error - The error to check. Must be either an AxiosError or a Response object.
+ * @param {unknown} error - The error to check.
  * @param {number} statusCode - The HTTP status code to check for.
- * @returns {boolean} True if the error has the specified status code, false otherwise.
- * @throws {TypeError} If the error is null, undefined, or not an AxiosError or Response object.
+ * @returns {boolean} True if the error is an ApiError with the specified status code; false otherwise.
+ * @throws {TypeError} If the error is null or undefined.
  *
  * @example
- * // With Axios
  * try {
- *   await axios.get('/api/resource');
+ *   const response = await fetch('/api/resource');
  * } catch (error) {
- *   if (isHttpStatusError(error, 404)) {
- *     console.log('Resource not found');
+ *   if (isHttpStatusError(error, 401)) {
+ *     console.log('Unauthorized');
  *   }
- * }
- *
- * @example
- * // With Fetch
- * const response = await fetch('/api/resource');
- * if (isHttpStatusError(response, 401)) {
- *   console.log('Authentication required');
  * }
  */
 export function isHttpStatusError(error: unknown, statusCode: number): boolean {
-  // Handle null/undefined case with an exception
   if (error === null || error === undefined) {
     throw new TypeError('Argument [error] cannot be null or undefined');
   }
 
-  // Handle Axios error format
-  if (error instanceof AxiosError) {
-    return error.response?.status === statusCode;
+  if (!(error instanceof ApiError)) {
+    return false;
   }
 
-  // Handle fetch Response objects
-  if (error instanceof Response) {
-    return error.status === statusCode;
-  }
-
-  // If it's neither of the expected types, throw an error.
-  throw new TypeError(
-    `Invalid error type: Expected either an AxiosError or a Response object, but received type: [${typeof error}] `
-  );
+  return error.status === statusCode;
 }
 
 /**
  * Checks if an error represents an HTTP 401 Unauthorized error.
  *
- * @param {unknown} error - The error to check. Must be either an AxiosError or a Response object.
- * @returns {boolean} True if the error has a 401 status code, false otherwise.
- * @throws {TypeError} If the error is null, undefined, or not an AxiosError or Response object.
+ * @param {unknown} error - The error to check.
+ * @returns {boolean} True if the error is an ApiError with a 401 status code; false otherwise.
+ * @throws {TypeError} If the error is null or undefined.
  *
  * @example
- * // With Axios
  * try {
- *   await axios.get('/api/resource');
+ *   const response = await fetch('/api/resource');
  * } catch (error) {
  *   if (isUnauthorizedError(error)) {
- *     console.log('Authentication required');
+ *     console.log('Unauthorized');
  *   }
- * }
- *
- * @example
- * // With Fetch
- * const response = await fetch('/api/resource');
- * if (isUnauthorizedError(response)) {
- *   console.log('Authentication required');
  * }
  */
 export const isUnauthorizedError = (error: unknown) => isHttpStatusError(error, 401);
@@ -162,25 +182,17 @@ export const isUnauthorizedError = (error: unknown) => isHttpStatusError(error, 
 /**
  * Checks if an error represents an HTTP 403 Forbidden error.
  *
- * @param {unknown} error - The error to check. Must be either an AxiosError or a Response object.
- * @returns {boolean} True if the error has a 403 status code, false otherwise.
- * @throws {TypeError} If the error is null, undefined, or not an AxiosError or Response object.
+ * @param {unknown} error - The error to check.
+ * @returns {boolean} True if the error is an ApiError with a 403 status code; false otherwise.
+ * @throws {TypeError} If the error is null or undefined.
  *
  * @example
- * // With Axios
  * try {
- *   await axios.get('/api/resource');
+ *   const response = await fetch('/api/resource');
  * } catch (error) {
  *   if (isForbiddenError(error)) {
- *     console.log('Forbidden');
+ *     console.log('Forbidden access');
  *   }
- * }
- *
- * @example
- * // With Fetch
- * const response = await fetch('/api/resource');
- * if (isForbiddenError(response)) {
- *   console.log('Forbidden');
  * }
  */
 export const isForbiddenError = (error: unknown) => isHttpStatusError(error, 403);
