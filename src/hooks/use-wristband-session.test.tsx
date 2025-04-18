@@ -4,7 +4,7 @@ import { render, screen, renderHook, act } from '@testing-library/react';
 
 import { useWristbandSession } from './use-wristband-session';
 import { WristbandAuthContext } from '../context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext } from '../types/types';
+import { AuthStatus, IWristbandAuthContext } from '../types/auth-provider-types';
 
 // Type definition for a strongly-typed session example
 interface UserSessionData {
@@ -21,7 +21,7 @@ describe('useWristbandSession', () => {
   });
 
   it('should return session data from context', () => {
-    // Arrange - Create mock context with session data
+    // Create mock context with session data
     const updateMetadataMock = vi.fn();
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
@@ -33,43 +33,41 @@ describe('useWristbandSession', () => {
         firstName: 'John',
         lastName: 'Doe',
         role: 'admin',
-        permissions: ['read', 'write', 'delete']
+        permissions: ['read', 'write', 'delete'],
       },
-      updateMetadata: updateMetadataMock
+      updateMetadata: updateMetadataMock,
     };
 
     // Use the context provider directly to verify it's being used
     const TestProvider = WristbandAuthContext.Provider;
-    
+
     // Create a wrapper that provides the mock context
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <TestProvider value={contextValue}>
-        {children}
-      </TestProvider>
+      <TestProvider value={contextValue}>{children}</TestProvider>
     );
 
-    // Act - Use the hook with the provided context and specify the metadata type
+    // Use the hook with the provided context and specify the metadata type
     const { result } = renderHook(() => useWristbandSession<UserSessionData>(), { wrapper });
 
-    // Assert - The hook should return the session data
+    // The hook should return the session data
     expect(result.current).toEqual({
       metadata: {
         firstName: 'John',
         lastName: 'Doe',
         role: 'admin',
-        permissions: ['read', 'write', 'delete']
+        permissions: ['read', 'write', 'delete'],
       },
       tenantId: 'tenant-456',
       userId: 'user-123',
-      updateMetadata: expect.any(Function)
+      updateMetadata: expect.any(Function),
     });
   });
 
   it('should throw error when used outside of WristbandAuthProvider', () => {
     // Verify WristbandAuthContext exists
     expect(WristbandAuthContext).toBeDefined();
-    
-    // Arrange & Act - Attempt to use the hook without a provider
+
+    // Attempt to use the hook without a provider
     const consoleError = console.error;
     console.error = vi.fn(); // Suppress React error logs
 
@@ -78,13 +76,11 @@ describe('useWristbandSession', () => {
       renderHook(() => useWristbandSession());
     }).toThrow('useWristbandSession() must be used within a WristbandAuthProvider.');
 
-    console.error = consoleError; // Restore console.error
+    // Restore console.error
+    console.error = consoleError;
   });
 
-  // Remaining tests unchanged...
-  
   it('should call context.updateMetadata when updateMetadata is called', () => {
-    // Arrange
     const updateMetadataMock = vi.fn();
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
@@ -96,30 +92,28 @@ describe('useWristbandSession', () => {
         firstName: 'John',
         lastName: 'Doe',
         role: 'admin',
-        permissions: ['read', 'write', 'delete']
+        permissions: ['read', 'write', 'delete'],
       },
-      updateMetadata: updateMetadataMock
+      updateMetadata: updateMetadataMock,
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <WristbandAuthContext.Provider value={contextValue}>
-        {children}
-      </WristbandAuthContext.Provider>
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
     );
 
-    // Act - Use the hook and call updateMetadata
+    // Use the hook and call updateMetadata
     const { result } = renderHook(() => useWristbandSession<UserSessionData>(), { wrapper });
-    
+
     act(() => {
       result.current.updateMetadata({ firstName: 'Jane' });
     });
 
-    // Assert - The context's updateMetadata should be called with the new metadata
+    // The context's updateMetadata should be called with the new metadata
     expect(updateMetadataMock).toHaveBeenCalledWith({ firstName: 'Jane' });
   });
 
   it('should handle empty metadata correctly', () => {
-    // Arrange - Create context with empty metadata
+    // Create context with empty metadata
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
@@ -127,19 +121,17 @@ describe('useWristbandSession', () => {
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: {},
-      updateMetadata: vi.fn()
+      updateMetadata: vi.fn(),
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <WristbandAuthContext.Provider value={contextValue}>
-        {children}
-      </WristbandAuthContext.Provider>
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
     );
 
-    // Act - Use the hook
+    // Use the hook
     const { result } = renderHook(() => useWristbandSession(), { wrapper });
 
-    // Assert - Metadata should be an empty object
+    // Metadata should be an empty object
     expect(result.current.metadata).toEqual({});
   });
 
@@ -151,10 +143,12 @@ describe('useWristbandSession', () => {
 
     const ProfileComponent = ({ showPermissions = false }: ProfileProps) => {
       const { metadata, userId } = useWristbandSession<UserSessionData>();
-      
+
       return (
         <div>
-          <h1 data-testid="greeting">Welcome, {metadata.firstName} {metadata.lastName}</h1>
+          <h1 data-testid="greeting">
+            Welcome, {metadata.firstName} {metadata.lastName}
+          </h1>
           <p data-testid="user-id">User ID: {userId}</p>
           <p data-testid="role">Role: {metadata.role}</p>
           {showPermissions && (
@@ -168,7 +162,7 @@ describe('useWristbandSession', () => {
       );
     };
 
-    // Arrange - Create context with user data
+    // Create context with user data
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
@@ -179,23 +173,23 @@ describe('useWristbandSession', () => {
         firstName: 'John',
         lastName: 'Doe',
         role: 'admin',
-        permissions: ['read', 'write', 'delete']
+        permissions: ['read', 'write', 'delete'],
       },
-      updateMetadata: vi.fn()
+      updateMetadata: vi.fn(),
     };
 
-    // Act - Render component that uses the hook
+    // Render component that uses the hook
     render(
       <WristbandAuthContext.Provider value={contextValue}>
         <ProfileComponent showPermissions={true} />
       </WristbandAuthContext.Provider>
     );
 
-    // Assert - Component should display the user data correctly
+    // Component should display the user data correctly
     expect(screen.getByTestId('greeting').textContent).toBe('Welcome, John Doe');
     expect(screen.getByTestId('user-id').textContent).toBe('User ID: user-123');
     expect(screen.getByTestId('role').textContent).toBe('Role: admin');
-    
+
     // Test permissions list
     const permissionsList = screen.getByTestId('permissions');
     expect(permissionsList.children.length).toBe(3);
@@ -205,7 +199,7 @@ describe('useWristbandSession', () => {
   });
 
   it('should support generic type parameters for strongly-typed metadata', () => {
-    // Arrange - Create context with fully-typed metadata
+    // Create context with fully-typed metadata
     interface EnterpriseUserData {
       employeeId: number;
       department: string;
@@ -229,43 +223,41 @@ describe('useWristbandSession', () => {
         accessLevel: 3,
         manager: {
           id: 'mgr-789',
-          name: 'Jane Smith'
-        }
+          name: 'Jane Smith',
+        },
       },
-      updateMetadata: updateMetadataMock
+      updateMetadata: updateMetadataMock,
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <WristbandAuthContext.Provider value={contextValue}>
-        {children}
-      </WristbandAuthContext.Provider>
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
     );
 
-    // Act - Use the hook with strongly-typed metadata
+    // Use the hook with strongly-typed metadata
     const { result } = renderHook(() => useWristbandSession<EnterpriseUserData>(), { wrapper });
 
-    // Assert - Type information should be preserved
+    // Type information should be preserved
     expect(result.current.metadata.employeeId).toBe(12345);
     expect(result.current.metadata.department).toBe('Engineering');
     expect(result.current.metadata.accessLevel).toBe(3);
     expect(result.current.metadata.manager.id).toBe('mgr-789');
     expect(result.current.metadata.manager.name).toBe('Jane Smith');
-    
+
     // Test updating nested properties
     act(() => {
       result.current.updateMetadata({
-        manager: { 
-          id: 'mgr-789', 
-          name: 'Jane Wilson'  // Updated name
-        }
+        manager: {
+          id: 'mgr-789',
+          name: 'Jane Wilson', // Updated name
+        },
       });
     });
-    
+
     expect(updateMetadataMock).toHaveBeenCalledWith({
       manager: {
         id: 'mgr-789',
-        name: 'Jane Wilson'
-      }
+        name: 'Jane Wilson',
+      },
     });
   });
 });

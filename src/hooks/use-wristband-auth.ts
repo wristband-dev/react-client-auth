@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 
-import { IWristbandAuthContext } from '../types/types';
 import { WristbandAuthContext } from '../context/wristband-auth-context';
+import { IWristbandAuthContext } from '../types/auth-provider-types';
 
 export function useWristbandAuth(): Pick<IWristbandAuthContext, 'isAuthenticated' | 'isLoading' | 'authStatus'> {
   const context = useContext(WristbandAuthContext);
