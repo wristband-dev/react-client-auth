@@ -289,7 +289,6 @@ The `transformSessionMetadata` prop on the `WristbandAuthProvider` provides a fl
 For example, let's say your backend server's Session Endpoint returns this response format to your React frontend:
 
 ```json
-// Session Endpoint Response Body
 {
   "userId": "123",
   "tenantId": "456",
@@ -497,6 +496,7 @@ function AuthHook() {
 | isAuthenticated | boolean | A boolean indicator that is `true` when the user is authenticated and `false` otherwise.
 | isLoading | boolean | A boolean indicator that is `true` when the authentication status is still being determined (e.g., during the initial session check) and `false` once the status is determined. |
 
+<br/>
 
 #### `useWristbandSession<TSessionMetadata>()`
 
@@ -557,6 +557,8 @@ function handleLogin() {
 | returnUrl | string | No | URL to redirect back to after successful authentication. Sent as the `return_url` query parameter to your Login Endpoint. |
 | tenantCustomDomain | string | No | Tenant custom domain for routing to the correct Tenant Login Page. Sent as the `tenant_custom_domain` query parameter to your Login Endpoint. |
 | tenantDomain | string | No | Tenant domain name for routing to the correct Tenant Login Page. Sent as the `tenant_domain` query parameter to your Login Endpoint. |
+
+<br/>
 
 #### `redirectToLogout(logoutUrl: string, config?: LogoutRedirectConfig): void`
 
