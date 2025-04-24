@@ -118,8 +118,8 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
         }
 
         // Update remaining context state last
-        setTenantId(tenantId);
-        setUserId(userId);
+        setTenantId(tenantId || '');
+        setUserId(userId || '');
         setIsAuthenticated(true);
         setIsLoading(false);
       } catch (error: unknown) {

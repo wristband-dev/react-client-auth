@@ -88,22 +88,22 @@ describe('Auth utilities', () => {
 
     it('should handle absolute URLs correctly', async () => {
       redirectToLogin('https://auth.example.com/login');
-      expect(window.location.href).toContain('https://auth.example.com/login?');
-      expect(window.location.href).toContain('return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
+      const url = window.location.href;
+      expect(url).toContain('https://auth.example.com/login');
+      expect(url).not.toContain('return_url=');
+      expect(url).not.toContain('login_hint=');
+      expect(url).not.toContain('tenant_domain=');
+      expect(url).not.toContain('tenant_custom_domain=');
     });
 
     it('should preserve existing query parameters in the loginUrl', async () => {
       redirectToLogin('/api/auth/login?theme=dark');
       const url = window.location.href;
       expect(url).toContain('theme=dark');
-      expect(url).toContain('return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
-    });
-
-    it('should redirect to the login URL with default parameters', async () => {
-      redirectToLogin('/api/auth/login');
-      const url = window.location.href;
-      expect(url).toContain('/api/auth/login');
-      expect(url).toContain('return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
+      expect(url).not.toContain('return_url=');
+      expect(url).not.toContain('login_hint=');
+      expect(url).not.toContain('tenant_domain=');
+      expect(url).not.toContain('tenant_custom_domain=');
     });
 
     it('should redirect with custom return URL if provided', async () => {
@@ -111,6 +111,9 @@ describe('Auth utilities', () => {
       const url = window.location.href;
       expect(url).toContain('/api/auth/login');
       expect(url).toContain('return_url=https%3A%2F%2Fapp.example.com%2Fdashboard');
+      expect(url).not.toContain('login_hint=');
+      expect(url).not.toContain('tenant_domain=');
+      expect(url).not.toContain('tenant_custom_domain=');
     });
 
     it('should include login hint if provided', async () => {
@@ -118,23 +121,29 @@ describe('Auth utilities', () => {
       const url = window.location.href;
       expect(url).toContain('/api/auth/login');
       expect(url).toContain('login_hint=user%40example.com');
-      expect(url).toContain('return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
+      expect(url).not.toContain('return_url=');
+      expect(url).not.toContain('tenant_domain=');
+      expect(url).not.toContain('tenant_custom_domain=');
     });
 
     it('should include tenant domain if provided', async () => {
       redirectToLogin('/api/auth/login', { tenantDomain: 'acme-corp' });
       const url = window.location.href;
       expect(url).toContain('/api/auth/login');
-      expect(url).toContain('return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
       expect(url).toContain('tenant_domain=acme-corp');
+      expect(url).not.toContain('return_url=');
+      expect(url).not.toContain('login_hint=');
+      expect(url).not.toContain('tenant_custom_domain=');
     });
 
     it('should include tenant custom domain if provided', async () => {
       redirectToLogin('/api/auth/login', { tenantCustomDomain: 'auth.acme.com' });
       const url = window.location.href;
       expect(url).toContain('/api/auth/login');
-      expect(url).toContain('return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
       expect(url).toContain('tenant_custom_domain=auth.acme.com');
+      expect(url).not.toContain('return_url=');
+      expect(url).not.toContain('login_hint=');
+      expect(url).not.toContain('tenant_domain=');
     });
 
     it('should include all parameters if provided', async () => {
