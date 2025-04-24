@@ -5,7 +5,7 @@ const reservedLoginQueryKeys = ['login_hint', 'return_url', 'tenant_domain', 'te
 const reservedLogoutQueryKeys = ['tenant_domain', 'tenant_custom_domain'];
 
 /**
- * Redirects the user to your backend server's Login Endpoint with optional configuration parameters.
+ * Redirects the user to your backend server's Login Endpoint with optional configuration parameters (browser only).
  *
  * This function initiates a redirect to the specified login URL and appends relevant query parameters
  * based on the provided configuration. The redirect will preserve the current page URL as the return
@@ -45,38 +45,39 @@ export function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = 
     throw new TypeError('Redirect To Login: [loginUrl] is required');
   }
 
-  let resolvedUrl: URL;
-  try {
-    resolvedUrl = new URL(loginUrl, window.location.origin);
-  } catch {
-    throw new TypeError(`Invalid loginUrl: "${loginUrl}" is not a valid URL`);
-  }
-
-  for (const key of reservedLoginQueryKeys) {
-    if (resolvedUrl.searchParams.has(key)) {
-      throw new Error(`loginUrl must not include reserved query param: "${key}"`);
+  // For frameworks like NextJS, need to ensure this can only be attempted in the browser.
+  if (typeof window !== 'undefined') {
+    let resolvedUrl: URL;
+    try {
+      resolvedUrl = new URL(loginUrl, window.location.origin);
+    } catch {
+      throw new TypeError(`Invalid loginUrl: "${loginUrl}" is not a valid URL`);
     }
+
+    for (const key of reservedLoginQueryKeys) {
+      if (resolvedUrl.searchParams.has(key)) {
+        throw new Error(`loginUrl must not include reserved query param: "${key}"`);
+      }
+    }
+
+    const queryParams: URLSearchParams = new URLSearchParams({
+      ...(config.loginHint ? { login_hint: config.loginHint } : {}),
+      ...(config.returnUrl ? { return_url: encodeURI(config.returnUrl) } : {}),
+      ...(config.tenantDomain ? { tenant_domain: config.tenantDomain } : {}),
+      ...(config.tenantCustomDomain ? { tenant_custom_domain: config.tenantCustomDomain } : {}),
+    });
+
+    resolvedUrl.searchParams.forEach((value, key) => {
+      queryParams.append(key, value);
+    });
+
+    resolvedUrl.search = queryParams.toString();
+    window.location.href = resolvedUrl.toString();
   }
-
-  const queryParams: URLSearchParams = new URLSearchParams({
-    ...(config.loginHint ? { login_hint: config.loginHint } : {}),
-    ...(config.returnUrl
-      ? { return_url: encodeURI(config.returnUrl) }
-      : { return_url: encodeURI(window.location.href) }),
-    ...(config.tenantDomain ? { tenant_domain: config.tenantDomain } : {}),
-    ...(config.tenantCustomDomain ? { tenant_custom_domain: config.tenantCustomDomain } : {}),
-  });
-
-  resolvedUrl.searchParams.forEach((value, key) => {
-    queryParams.append(key, value);
-  });
-
-  resolvedUrl.search = queryParams.toString();
-  window.location.href = resolvedUrl.toString();
 }
 
 /**
- * Redirects the user to your backend server's Logout Endpoint with optional configuration.
+ * Redirects the user to your backend server's Logout Endpoint with optional configuration (browser only).
  *
  * This function navigates the user to the specified logout URL and can append additional parameters as needed.
  *
@@ -106,30 +107,33 @@ export function redirectToLogout(logoutUrl: string, config: LogoutRedirectConfig
     throw new TypeError('Redirect To Logout: [logoutUrl] is required');
   }
 
-  let resolvedUrl: URL;
-  try {
-    resolvedUrl = new URL(logoutUrl, window.location.origin);
-  } catch {
-    throw new TypeError(`Invalid logoutUrl: "${logoutUrl}" is not a valid URL`);
-  }
-
-  for (const key of reservedLogoutQueryKeys) {
-    if (resolvedUrl.searchParams.has(key)) {
-      throw new Error(`logoutUrl must not include reserved query param: "${key}"`);
+  // For frameworks like NextJS, need to ensure this can only be attempted in the browser.
+  if (typeof window !== 'undefined') {
+    let resolvedUrl: URL;
+    try {
+      resolvedUrl = new URL(logoutUrl, window.location.origin);
+    } catch {
+      throw new TypeError(`Invalid logoutUrl: "${logoutUrl}" is not a valid URL`);
     }
+
+    for (const key of reservedLogoutQueryKeys) {
+      if (resolvedUrl.searchParams.has(key)) {
+        throw new Error(`logoutUrl must not include reserved query param: "${key}"`);
+      }
+    }
+
+    const queryParams: URLSearchParams = new URLSearchParams({
+      ...(config.tenantDomain ? { tenant_domain: config.tenantDomain } : {}),
+      ...(config.tenantCustomDomain ? { tenant_custom_domain: config.tenantCustomDomain } : {}),
+    });
+
+    resolvedUrl.searchParams.forEach((value, key) => {
+      queryParams.append(key, value);
+    });
+
+    resolvedUrl.search = queryParams.toString();
+    window.location.href = resolvedUrl.toString();
   }
-
-  const queryParams: URLSearchParams = new URLSearchParams({
-    ...(config.tenantDomain ? { tenant_domain: config.tenantDomain } : {}),
-    ...(config.tenantCustomDomain ? { tenant_custom_domain: config.tenantCustomDomain } : {}),
-  });
-
-  resolvedUrl.searchParams.forEach((value, key) => {
-    queryParams.append(key, value);
-  });
-
-  resolvedUrl.search = queryParams.toString();
-  window.location.href = resolvedUrl.toString();
 }
 
 /**

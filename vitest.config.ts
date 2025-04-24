@@ -17,7 +17,8 @@ export default defineConfig({
         'vitest.config.ts',
         '**/*.d.ts',
         '**/*.test.{ts,tsx}',
-      ]
-    }
+        'rollup.config.js',
+      ],
+    },
   },
 });

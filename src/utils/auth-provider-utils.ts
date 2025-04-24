@@ -24,6 +24,11 @@ export function resolveAuthProviderLoginUrl(loginUrl: string): string {
     throw new TypeError('WristbandAuthProvider: [loginUrl] is required');
   }
 
+  // For frameworks like NextJS, need to ensure this doesn't break in server-side environments.
+  if (typeof window === 'undefined') {
+    return loginUrl;
+  }
+
   let resolvedUrl: URL;
   try {
     resolvedUrl = new URL(loginUrl, window.location.origin);
@@ -63,10 +68,13 @@ export function validateAuthProviderLogoutUrl(logoutUrl: string): void {
     throw new TypeError('WristbandAuthProvider: [logoutUrl] is required');
   }
 
-  try {
-    new URL(logoutUrl, window.location.origin);
-  } catch {
-    throw new TypeError(`WristbandAuthProvider: [${logoutUrl}] is not a valid logoutUrl`);
+  // For frameworks like NextJS, need to ensure this doesn't break in server-side environments.
+  if (typeof window !== 'undefined') {
+    try {
+      new URL(logoutUrl, window.location.origin);
+    } catch {
+      throw new TypeError(`WristbandAuthProvider: [${logoutUrl}] is not a valid logoutUrl`);
+    }
   }
 }
 
@@ -94,9 +102,12 @@ export function validateAuthProviderSessionUrl(sessionUrl: string): void {
     throw new TypeError('WristbandAuthProvider: [sessionUrl] is required');
   }
 
-  try {
-    new URL(sessionUrl, window.location.origin);
-  } catch {
-    throw new TypeError(`WristbandAuthProvider: [${sessionUrl}] is not a valid sessionUrl`);
+  // For frameworks like NextJS, need to ensure this doesn't break in server-side environments.
+  if (typeof window !== 'undefined') {
+    try {
+      new URL(sessionUrl, window.location.origin);
+    } catch {
+      throw new TypeError(`WristbandAuthProvider: [${sessionUrl}] is not a valid sessionUrl`);
+    }
   }
 }
