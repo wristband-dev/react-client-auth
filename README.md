@@ -32,6 +32,14 @@ The SDK handles authentication interactions in your appâ€™s React frontend. Itâ€
 
 ---
 
+## Migrating From Older SDK Versions
+
+On an older version of our SDK? Check out our migration guide:
+
+- [Instructions for migrating to Version 1.x](migration/v1/README.md)
+
+<br>
+
 ## Installation
 
 ```sh
@@ -459,8 +467,8 @@ export default function App() {
 
 | Property | Type | Required? | Description |
 | -------- | ---- | --------- | ----------- |
-| csrfCookieName | string | No | Name of the CSRF/XSRF cookie that the server sets. This enables CSRF protection for the request made to your Session Endpoint.<br><br> Default: `XSRF-TOKEN` |
-| csrfHeaderName | string | No | Name of the CSRF/XSRF header that will be sent with authenticated requests to your Session Endpoint. This should match the header name your server expects for CSRF validation.<br><br> Default: `X-XSRF-TOKEN` |
+| csrfCookieName | string | No | Name of the CSRF cookie that the server sets. This enables CSRF protection for the request made to your Session Endpoint.<br><br> Default: `CSRF-TOKEN` |
+| csrfHeaderName | string | No | Name of the CSRF header that will be sent with authenticated requests to your Session Endpoint. This should match the header name your server expects for CSRF validation.<br><br> Default: `X-CSRF-TOKEN` |
 | disableRedirectOnUnauthenticated | boolean | No | When `true`, unauthenticated users will remain on the current page instead of being redirected to your backend server's Login or Logout Endpoints. This is useful for public pages that have both authenticated and unauthenticated states.<br><br> Default: `false` |
 | loginUrl | string | Yes | The URL of your backend server's Login Endpoint that handles the authentication flow with Wristband. |
 | logoutUrl | string | Yes | The URL of your backend server's Logout Endpoint that handles terminating the user's session in your application and redirecting to Wristband's Logout Endpoint. |

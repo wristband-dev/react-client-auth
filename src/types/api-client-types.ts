@@ -5,8 +5,8 @@
  *
  * @interface RequestOptions
  * @extends {RequestInit}
- * @property {string} [csrfCookieName] - The name of the cookie containing the CSRF token. Defaults to 'XSRF-TOKEN' if not specified.
- * @property {string} [csrfHeaderName] - The name of the header that will carry the CSRF token. Defaults to 'X-XSRF-TOKEN' if not specified.
+ * @property {string} [csrfCookieName] - The name of the cookie containing the CSRF token. Defaults to 'CSRF-TOKEN' if not specified.
+ * @property {string} [csrfHeaderName] - The name of the header that will carry the CSRF token. Defaults to 'X-CSRF-TOKEN' if not specified.
  */
 export interface RequestOptions extends RequestInit {
   csrfCookieName?: string;

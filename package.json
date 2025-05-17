@@ -3,7 +3,7 @@
   "description": "A lightweight React SDK that pairs with your backend server auth to initialize and sync frontend sessions via secure session cookies.",
   "author": "Wristband",
   "homepage": "https://wristband.dev",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "license": "MIT",
   "sideEffects": false,
   "type": "module",

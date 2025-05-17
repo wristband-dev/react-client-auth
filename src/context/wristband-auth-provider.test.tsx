@@ -167,8 +167,8 @@ describe('WristbandAuthProvider', () => {
 
     // Verify the API was called with correct parameters
     expect(apiClient.get).toHaveBeenCalledWith(defaultProps.sessionUrl, {
-      csrfCookieName: 'XSRF-TOKEN',
-      csrfHeaderName: 'X-XSRF-TOKEN',
+      csrfCookieName: 'CSRF-TOKEN',
+      csrfHeaderName: 'X-CSRF-TOKEN',
     });
   });
 
