@@ -24,8 +24,8 @@ const apiClient = {
    * @param {string} url - The endpoint URL to request
    *                      @required
    * @param {RequestOptions} options - Additional request options and configuration. Extends the standard fetch RequestInit options.
-   * @param {string} [options.csrfCookieName='XSRF-TOKEN'] - Name of the cookie containing the CSRF token
-   * @param {string} [options.csrfHeaderName='X-XSRF-TOKEN'] - Name of the header to send the CSRF token in
+   * @param {string} [options.csrfCookieName='CSRF-TOKEN'] - Name of the cookie containing the CSRF token
+   * @param {string} [options.csrfHeaderName='X-CSRF-TOKEN'] - Name of the header to send the CSRF token in
    * @returns {Promise<ApiResponse<T>>} A promise that resolves to a standardized API response containing the data, status code, and headers.
    * @throws {ApiError} When the server responds with a non-2xx status code. Includes status, statusText, and the original Response object.
    *
@@ -57,7 +57,7 @@ const apiClient = {
    * const { id, name, email } = response.data;
    */
   async get<T = unknown>(url: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
-    const { csrfCookieName = 'XSRF-TOKEN', csrfHeaderName = 'X-XSRF-TOKEN' } = options;
+    const { csrfCookieName = 'CSRF-TOKEN', csrfHeaderName = 'X-CSRF-TOKEN' } = options;
 
     const csrfToken = getCsrfToken(csrfCookieName);
 

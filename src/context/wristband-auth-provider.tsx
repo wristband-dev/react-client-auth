@@ -67,8 +67,8 @@ import {
  */
 export function WristbandAuthProvider<TSessionMetaData = unknown>({
   children,
-  csrfCookieName = 'XSRF-TOKEN',
-  csrfHeaderName = 'X-XSRF-TOKEN',
+  csrfCookieName = 'CSRF-TOKEN',
+  csrfHeaderName = 'X-CSRF-TOKEN',
   disableRedirectOnUnauthenticated = false,
   loginUrl,
   logoutUrl,

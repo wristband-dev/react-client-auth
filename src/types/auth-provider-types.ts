@@ -74,15 +74,15 @@ export interface IWristbandAuthContext<TSessionMetadata = unknown> {
 export interface IWristbandAuthProviderProps<TSessionMetadata = unknown>
   extends PropsWithChildren<{
     /**
-     * Name of the CSRF/XSRF cookie that the server sets. This enables CSRF protection for requests made to your
+     * Name of the CSRF cookie that the server sets. This enables CSRF protection for requests made to your
      * backend server.
-     * @default 'XSRF-TOKEN'
+     * @default 'CSRF-TOKEN'
      */
     csrfCookieName?: string;
     /**
-     * Name of the CSRF/XSRF header that will be sent with authenticated requests. This should match the header name
+     * Name of the CSRF header that will be sent with authenticated requests. This should match the header name
      * your server expects for CSRF validation.
-     * @default 'X-XSRF-TOKEN'
+     * @default 'X-CSRF-TOKEN'
      */
     csrfHeaderName?: string;
     /**

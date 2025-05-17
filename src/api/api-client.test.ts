@@ -14,7 +14,7 @@ describe('API Client', () => {
     // Mock document.cookie for CSRF token tests
     Object.defineProperty(document, 'cookie', {
       writable: true,
-      value: 'XSRF-TOKEN=test-csrf-token; path=/;',
+      value: 'CSRF-TOKEN=test-csrf-token; path=/;',
     });
   });
 
@@ -46,7 +46,7 @@ describe('API Client', () => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          'X-XSRF-TOKEN': 'test-csrf-token',
+          'X-CSRF-TOKEN': 'test-csrf-token',
         },
       });
 
@@ -226,7 +226,7 @@ describe('API Client', () => {
   describe('getCsrfToken', () => {
     it('should extract token from single cookie', () => {
       // Set test cookie
-      document.cookie = 'XSRF-TOKEN=single-token; path=/;';
+      document.cookie = 'CSRF-TOKEN=single-token; path=/;';
 
       // Mock successful response to test extraction
       const mockResponse = {
@@ -247,7 +247,7 @@ describe('API Client', () => {
         '/api/test',
         expect.objectContaining({
           headers: expect.objectContaining({
-            'X-XSRF-TOKEN': 'single-token',
+            'X-CSRF-TOKEN': 'single-token',
           }),
         })
       );
@@ -255,7 +255,7 @@ describe('API Client', () => {
 
     it('should extract token from multiple cookies', () => {
       // Set multiple cookies
-      document.cookie = 'first=value1; XSRF-TOKEN=multi-token; third=value3;';
+      document.cookie = 'first=value1; CSRF-TOKEN=multi-token; third=value3;';
 
       // Mock successful response
       const mockResponse = {
@@ -276,7 +276,7 @@ describe('API Client', () => {
         '/api/test',
         expect.objectContaining({
           headers: expect.objectContaining({
-            'X-XSRF-TOKEN': 'multi-token',
+            'X-CSRF-TOKEN': 'multi-token',
           }),
         })
       );
@@ -284,7 +284,7 @@ describe('API Client', () => {
 
     it('should handle URL-encoded token values', () => {
       // Set cookie with encoded value
-      document.cookie = 'XSRF-TOKEN=token%20with%20spaces%26special%3Dchars; path=/;';
+      document.cookie = 'CSRF-TOKEN=token%20with%20spaces%26special%3Dchars; path=/;';
 
       // Mock successful response
       const mockResponse = {
@@ -305,7 +305,7 @@ describe('API Client', () => {
         '/api/test',
         expect.objectContaining({
           headers: expect.objectContaining({
-            'X-XSRF-TOKEN': 'token with spaces&special=chars',
+            'X-CSRF-TOKEN': 'token with spaces&special=chars',
           }),
         })
       );
@@ -334,7 +334,7 @@ describe('API Client', () => {
         '/api/test',
         expect.objectContaining({
           headers: expect.not.objectContaining({
-            'X-XSRF-TOKEN': expect.anything(),
+            'X-CSRF-TOKEN': expect.anything(),
           }),
         })
       );

@@ -9,7 +9,7 @@
  * @returns {string | null} The CSRF token value if found; null otherwise.
  *
  * @example
- * const token = getCsrfToken('XSRF-TOKEN');
+ * const token = getCsrfToken('CSRF-TOKEN');
  *
  * @private - This is an internal helper function not intended for external use
  */
