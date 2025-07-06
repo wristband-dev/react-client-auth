@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { WristbandAuthContext } from './wristband-auth-context';
-import { AuthStatus, IWristbandAuthProviderProps, SessionResponse } from '../types/auth-provider-types';
+import { AuthStatus, IWristbandAuthProviderProps, SessionResponse, TokenResponse } from '../types/auth-provider-types';
 import { isUnauthorizedError } from '../utils/auth-utils';
 import apiClient from '../api/api-client';
 import {
   resolveAuthProviderLoginUrl,
   validateAuthProviderLogoutUrl,
   validateAuthProviderSessionUrl,
+  validateAuthProviderTokenUrl,
 } from '../utils/auth-provider-utils';
+import { WristbandTokenError } from '../error';
+
+const accessTokenExpirationBufferTime = 30000; // 30 seconds
 
 /**
  * WristbandAuthProvider establishes an authenticated session with your backend server
@@ -26,6 +30,22 @@ import {
  *       loginUrl="/api/auth/login"
  *       logoutUrl="/api/auth/logout"
  *       sessionUrl="/api/auth/session"
+ *     >
+ *       <YourAppComponents />
+ *     </WristbandAuthProvider>
+ *   );
+ * }
+ * ```
+ *
+ *  * @example Using access tokens directly in React
+ * ```jsx
+ * function App() {
+ *   return (
+ *     <WristbandAuthProvider
+ *       loginUrl="/api/auth/login"
+ *       logoutUrl="/api/auth/logout"
+ *       sessionUrl="/api/auth/session"
+ *       tokenUrl="/api/auth/token"
  *     >
  *       <YourAppComponents />
  *     </WristbandAuthProvider>
@@ -60,8 +80,9 @@ import {
  * ```
  *
  * Once rendered, child components can access authentication state using the hooks:
- * - useWristbandAuth() - For authentication status (isAuthenticated, isLoading, authStatus)
+ * - useWristbandAuth() - For authentication status (isAuthenticated, isLoading, authStatus, clearAuthData)
  * - useWristbandSession() - For session data (userId, tenantId, metadata)
+ * - useWristbandToken() - For client-side token management, if applicable (getToken, clearToken)
  *
  * @template TSessionMetaData - Type for the transformed session metadata, if applicable.
  */
@@ -74,35 +95,132 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   logoutUrl,
   onSessionSuccess,
   sessionUrl,
+  tokenUrl = '',
   transformSessionMetadata,
 }: IWristbandAuthProviderProps<TSessionMetaData>) {
-  const resolvedLoginUrl = resolveAuthProviderLoginUrl(loginUrl);
-  validateAuthProviderLogoutUrl(logoutUrl);
-  validateAuthProviderSessionUrl(sessionUrl);
-
+  // Internal State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userId, setUserId] = useState<string>('');
   const [tenantId, setTenantId] = useState<string>('');
   const [metadata, setMetadata] = useState<TSessionMetaData>({} as TSessionMetaData);
+  const [accessToken, setAccessToken] = useState<string>('');
+  const [accessTokenExpiresAt, setAccessTokenExpiresAt] = useState<number>(0);
 
+  // Tracks in-flight token requests to prevent duplicate API calls.
+  const tokenRequestRef = useRef<Promise<string> | null>(null);
+
+  // Convenience enum for users who don't want to check both isAuthenticated and isLoading
   const authStatus: AuthStatus = isLoading
     ? AuthStatus.LOADING
     : isAuthenticated
     ? AuthStatus.AUTHENTICATED
     : AuthStatus.UNAUTHENTICATED;
 
+  const { resolvedLoginUrl, validatedLogoutUrl, validatedSessionUrl, validatedTokenUrl } = useMemo(() => {
+    // All validations happen first before any useEffect
+    validateAuthProviderLogoutUrl(logoutUrl);
+    validateAuthProviderSessionUrl(sessionUrl);
+    if (tokenUrl) {
+      validateAuthProviderTokenUrl(tokenUrl);
+    }
+    return {
+      resolvedLoginUrl: resolveAuthProviderLoginUrl(loginUrl),
+      validatedLogoutUrl: logoutUrl,
+      validatedSessionUrl: sessionUrl,
+      validatedTokenUrl: tokenUrl,
+    };
+  }, [loginUrl, logoutUrl, sessionUrl, tokenUrl]);
+
+  /**
+   * Destroys all auth, session, and token data.
+   */
+  const clearAuthData = useCallback(() => {
+    clearToken();
+    setIsAuthenticated(false);
+    setIsLoading(false);
+    setTenantId('');
+    setUserId('');
+    setMetadata({} as TSessionMetaData);
+  }, []);
+
+  /**
+   * Allows setting of session metadata even after initial fetchSession() occurs.
+   */
   const updateMetadata = useCallback((newMetadata: Partial<TSessionMetaData>) => {
     setMetadata((prevData) => ({ ...prevData, ...newMetadata }));
   }, []);
 
-  // Bootstrap the application with the authenticated user's session data.
+  /**
+   * Clear token cache and any in-flight token request.
+   */
+  const clearToken = useCallback(() => {
+    setAccessToken('');
+    setAccessTokenExpiresAt(0);
+    tokenRequestRef.current = null;
+  }, []);
+
+  /**
+   * Token management with deduplication and caching. Server handles token refresh using session
+   * cookie, so client only needs to cache and deduplicate.
+   */
+  const getToken = useCallback(async (): Promise<string> => {
+    if (!validatedTokenUrl || !validatedTokenUrl.trim()) {
+      throw new WristbandTokenError('TOKEN_URL_NOT_CONFIGURED', 'Token URL not configured');
+    }
+
+    if (!isAuthenticated) {
+      throw new WristbandTokenError('UNAUTHENTICATED', 'User is not authenticated');
+    }
+
+    // Check if we have a valid cached token (with 30 second buffer)
+    if (accessToken && accessTokenExpiresAt > Date.now() + accessTokenExpirationBufferTime) {
+      return accessToken;
+    }
+
+    // If there's already a token request in flight, return that promise
+    if (tokenRequestRef.current) {
+      return tokenRequestRef.current;
+    }
+
+    // Create new token request - server will handle refresh using session cookie
+    const tokenRequest = (async () => {
+      try {
+        const response = await apiClient.get<TokenResponse>(validatedTokenUrl, { csrfCookieName, csrfHeaderName });
+        const { accessToken: newToken, expiresAt } = response.data;
+        setAccessToken(newToken);
+        setAccessTokenExpiresAt(expiresAt);
+        return newToken;
+      } catch (error) {
+        // If token fetch fails due to auth error, clear token state.
+        if (isUnauthorizedError(error)) {
+          // Clear token state on 401
+          setAccessToken('');
+          setAccessTokenExpiresAt(0);
+          throw new WristbandTokenError('UNAUTHENTICATED', 'Token request unauthorized', error);
+        }
+
+        throw new WristbandTokenError('TOKEN_FETCH_FAILED', 'Failed to fetch token', error);
+      } finally {
+        // Clear the in-flight request
+        tokenRequestRef.current = null;
+      }
+    })();
+
+    // Store the promise to prevent duplicate requests
+    tokenRequestRef.current = tokenRequest;
+    return tokenRequest;
+  }, [isAuthenticated, accessToken, accessTokenExpiresAt]);
+
+  /**
+   * Bootstrap the application with the authenticated user's session data via session cookie.
+   */
   useEffect(() => {
     const fetchSession = async () => {
       try {
         // The session API will let React know if the user has a previously authenticated session.
         // If so, it will initialize session data.
-        const response = await apiClient.get<SessionResponse>(sessionUrl, { csrfCookieName, csrfHeaderName });
+        const response = await apiClient.get<SessionResponse>(validatedSessionUrl, { csrfCookieName, csrfHeaderName });
         const { userId, tenantId, metadata: rawMetadata } = response.data;
 
         // Execute side effects callback before updating state if provided
@@ -129,7 +247,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
           setIsLoading(false);
         } else {
           // Don't call logout on 401 to preserve the current page for when the user returns after re-authentication.
-          window.location.href = isUnauthorizedError(error) ? resolvedLoginUrl : logoutUrl;
+          window.location.href = isUnauthorizedError(error) ? resolvedLoginUrl : validatedLogoutUrl;
         }
       }
     };
@@ -142,6 +260,9 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
     <WristbandAuthContext.Provider
       value={{
         authStatus,
+        clearAuthData,
+        clearToken,
+        getToken,
         isAuthenticated,
         isLoading,
         metadata,

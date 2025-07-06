@@ -37,6 +37,74 @@ export interface IWristbandAuthContext<TSessionMetadata = unknown> {
    */
   authStatus: AuthStatus;
   /**
+   * Resets all authentication, session, and token data in the React context to initial/empty state.
+   *
+   * This function clears all auth-related state including authentication status, user data,
+   * session metadata, and cached tokens. Use this when you need to completely reset the
+   * SDK state, typically for testing, error recovery, or when implementing custom logout flows.
+   *
+   * NOTE: This only clears React state and does not invalidate server-side sessions or
+   * redirect the user. For standard logout, redirect to your logout URL instead.
+   *
+   * @example
+   * ```typescript
+   * const { clearAuthData } = useWristbandAuth();
+   *
+   * const handleCriticalError = () => {
+   *   clearAuthData(); // Reset all state
+   *   redirectToLogin('/api/auth/login');
+   * };
+   * ```
+   */
+  clearAuthData: () => void;
+  /**
+   * Clears the cached access token and forces the next getToken() call to fetch a fresh token,
+   * assuming that the user still has an authenticated session.
+   *
+   * NOTE: This only clears the client-side token cache. If the user's session remains
+   * active, then the getToken() will continue to work by fetching new tokens from the
+   * configured tokenUrl endpoint.
+   *
+   * @example
+   * ```typescript
+   * const { getToken, clearToken } = useWristbandToken();
+   *
+   * const forceTokenFetch = async () => {
+   *   clearToken(); // Clear cached token
+   *   const freshToken = await getToken(); // Fetches new token
+   * };
+   * ```
+   */
+  clearToken: () => void;
+  /**
+   * Retrieves a valid access token for making authenticated API calls to resource servers. Returns a
+   * cached token if available and not expired, otherwise fetches a fresh token from the configured
+   * "tokenUrl" endpoint. Automatically handles token expiration and refresh using the user's session state.
+   *
+   * If the token endpoint returns a 401 (unauthorized), the cached token state will be
+   * automatically cleared and the user may be redirected to login depending on configuration.
+   *
+   * @returns Promise that resolves to a valid access token string
+   * @throws Error if tokenUrl is not configured, user is not authenticated, or token retrieval fails
+   *
+   * @example
+   * ```typescript
+   * const { getToken } = useWristbandToken();
+   *
+   * const callAPI = async () => {
+   *   try {
+   *     const token = await getToken();
+   *     const response = await fetch('/api/protected', {
+   *       headers: { 'Authorization': `Bearer ${token}` }
+   *     });
+   *   } catch (error) {
+   *     console.error('Token retrieval failed:', error);
+   *   }
+   * };
+   * ```
+   */
+  getToken: () => Promise<string>;
+  /**
    * Boolean flag indicating if the user is authenticated.
    * Use this for conditional rendering of authenticated content.
    */
@@ -47,14 +115,13 @@ export interface IWristbandAuthContext<TSessionMetadata = unknown> {
    */
   isLoading: boolean;
   /**
-   * Custom metadata associated with the authenticated session.
-   * Can be used to store user preferences, permissions, or other session-specific data.
-   * The type is defined by the TSessionMetadata generic parameter.
+   * Custom metadata associated with the authenticated session. The type is defined by the TSessionMetadata
+   * generic parameter. Available only when authentication is successful.
    */
   metadata: TSessionMetadata;
   /**
    * Identifier for the tenant associated with the authenticated session.
-   * Used in multi-tenant applications to identify the user's organization.
+   * Available only when authentication is successful.
    */
   tenantId: string;
   /**
@@ -142,6 +209,20 @@ export interface IWristbandAuthProviderProps<TSessionMetadata = unknown>
      */
     sessionUrl: string;
     /**
+     * Optional URL endpoint for retrieving access tokens from your application's backend server.
+     * When provided, enables getToken() functionality in the useWristbandAuth() hook for making
+     * direct API calls to resource servers with Bearer tokens. If not provided, applications should
+     * use session-based authentication for all API calls.
+     *
+     * The token endpoint should:
+     * - Ensure the user has a valid session cookie
+     * - Handle token refresh automatically using the session state, if necessary.
+     * - Return a JSON response with { accessToken: string, expiresAt: number }
+     *
+     * @example "/api/auth/token"
+     */
+    tokenUrl?: string;
+    /**
      * Function to transform raw metadata from the session response before storing it in context.
      *
      * Use this to format, type, or filter the metadata that your components will access
@@ -193,4 +274,25 @@ export interface SessionResponse {
   metadata: unknown;
   tenantId: string;
   userId: string;
+}
+
+/**
+ * Response structure returned by the token endpoint when fetching access tokens. The token endpoint
+ * should return this JSON structure when successfully issuing or refreshing an access token for the
+ * authenticated user's session.
+ *
+ * @interface TokenResponse
+ */
+export interface TokenResponse {
+  /**
+   * The access token string to be used in Authorization headers for API calls.
+   */
+  accessToken: string;
+  /**
+   * Unix timestamp in milliseconds indicating when the token expires.
+   * Used by the SDK to determine when to fetch a fresh token.
+   *
+   * @example Date.now() + (60 * 60 * 1000) // Expires in 1 hour
+   */
+  expiresAt: number; // Unix timestamp in milliseconds
 }

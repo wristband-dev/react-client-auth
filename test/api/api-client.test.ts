@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import apiClient from './api-client';
-import { ApiError } from '../types/api-client-types';
+import apiClient from '../../src/api/api-client';
+import { ApiError } from '../../src/error';
 
 // Mock the fetch function
 global.fetch = vi.fn();
@@ -333,9 +333,7 @@ describe('API Client', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         '/api/test',
         expect.objectContaining({
-          headers: expect.not.objectContaining({
-            'X-CSRF-TOKEN': expect.anything(),
-          }),
+          headers: expect.not.objectContaining({ 'X-CSRF-TOKEN': expect.anything() }),
         })
       );
     });

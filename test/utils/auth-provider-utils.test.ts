@@ -4,7 +4,8 @@ import {
   resolveAuthProviderLoginUrl,
   validateAuthProviderLogoutUrl,
   validateAuthProviderSessionUrl,
-} from './auth-provider-utils';
+  validateAuthProviderTokenUrl,
+} from '../../src/utils/auth-provider-utils';
 
 describe('Auth Provider Utils', () => {
   // Store the original window.location
@@ -142,6 +143,49 @@ describe('Auth Provider Utils', () => {
       expect(() => validateAuthProviderSessionUrl('/api/auth/session')).not.toThrow();
       expect(() => validateAuthProviderSessionUrl('https://auth.example.com/session')).not.toThrow();
       expect(() => validateAuthProviderSessionUrl('/api/auth/session?format=json')).not.toThrow();
+    });
+  });
+
+  describe('validateAuthProviderTokenUrl', () => {
+    it('should not throw if tokenUrl is undefined (optional parameter)', () => {
+      expect(() => validateAuthProviderTokenUrl(undefined)).not.toThrow();
+      expect(() => validateAuthProviderTokenUrl()).not.toThrow();
+    });
+
+    it('should not throw if tokenUrl is empty string', () => {
+      expect(() => validateAuthProviderTokenUrl('')).not.toThrow();
+    });
+
+    it('should not throw if tokenUrl is null', () => {
+      expect(() => validateAuthProviderTokenUrl(null as unknown as string)).not.toThrow();
+    });
+
+    it('should throw for invalid URLs when tokenUrl is provided', () => {
+      expect(() => validateAuthProviderTokenUrl('http://')).toThrow(
+        'WristbandAuthProvider: [http://] is not a valid tokenUrl'
+      );
+      expect(() => validateAuthProviderTokenUrl('//')).toThrow('WristbandAuthProvider: [//] is not a valid tokenUrl');
+    });
+
+    it('should not throw for valid URLs when tokenUrl is provided', () => {
+      expect(() => validateAuthProviderTokenUrl('/api/auth/token')).not.toThrow();
+      expect(() => validateAuthProviderTokenUrl('https://auth.example.com/token')).not.toThrow();
+      expect(() => validateAuthProviderTokenUrl('/api/auth/token?format=json')).not.toThrow();
+    });
+
+    it('should handle relative URLs correctly', () => {
+      expect(() => validateAuthProviderTokenUrl('/api/auth/token')).not.toThrow();
+      expect(() => validateAuthProviderTokenUrl('api/auth/token')).not.toThrow();
+    });
+
+    it('should handle absolute URLs correctly', () => {
+      expect(() => validateAuthProviderTokenUrl('https://auth.example.com/token')).not.toThrow();
+      expect(() => validateAuthProviderTokenUrl('http://localhost:3000/api/auth/token')).not.toThrow();
+    });
+
+    it('should handle URLs with query parameters', () => {
+      expect(() => validateAuthProviderTokenUrl('/api/auth/token?tenant=example&format=json')).not.toThrow();
+      expect(() => validateAuthProviderTokenUrl('https://auth.example.com/token?scope=read')).not.toThrow();
     });
   });
 });

@@ -1,10 +1,10 @@
-import React, { ReactNode } from 'react';
+import React, { act, ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, renderHook } from '@testing-library/react';
 
-import { useWristbandAuth } from './use-wristband-auth';
-import { WristbandAuthContext } from '../context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext } from '../types/auth-provider-types';
+import { useWristbandAuth } from '../../src/hooks/use-wristband-auth';
+import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
+import { AuthStatus, IWristbandAuthContext } from '../../src/types/auth-provider-types';
 
 describe('useWristbandAuth', () => {
   // Reset any mocks before each test
@@ -12,7 +12,9 @@ describe('useWristbandAuth', () => {
     vi.resetAllMocks();
   });
 
-  it('should return authentication state from context', () => {
+  it('should return authentication state and clearAuthData from context', () => {
+    const mockClearAuthData = vi.fn();
+
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
@@ -21,6 +23,9 @@ describe('useWristbandAuth', () => {
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
       updateMetadata: vi.fn(),
+      clearAuthData: mockClearAuthData,
+      clearToken: vi.fn(),
+      getToken: vi.fn(),
     };
 
     // Create a wrapper that provides the mock context
@@ -36,12 +41,44 @@ describe('useWristbandAuth', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      clearAuthData: mockClearAuthData,
     });
 
-    // Verify that other properties are not included in the returned object
-    // We know they're not there because of the Pick type, so we don't need to test this
-    // But we can test that the object only has the expected keys
-    expect(Object.keys(result.current).sort()).toEqual(['authStatus', 'isAuthenticated', 'isLoading'].sort());
+    // Verify that the returned object only has the expected keys
+    expect(Object.keys(result.current).sort()).toEqual(
+      ['authStatus', 'clearAuthData', 'isAuthenticated', 'isLoading'].sort()
+    );
+  });
+
+  it('should call clearAuthData when invoked', () => {
+    const mockClearAuthData = vi.fn();
+
+    const contextValue: IWristbandAuthContext = {
+      isAuthenticated: true,
+      isLoading: false,
+      authStatus: AuthStatus.AUTHENTICATED,
+      userId: 'user-123',
+      tenantId: 'tenant-456',
+      metadata: { role: 'admin' },
+      updateMetadata: vi.fn(),
+      clearAuthData: mockClearAuthData,
+      clearToken: vi.fn(),
+      getToken: vi.fn(),
+    };
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
+    );
+
+    const { result } = renderHook(() => useWristbandAuth(), { wrapper });
+
+    // Call clearAuthData
+    act(() => {
+      result.current.clearAuthData();
+    });
+
+    // Verify the mock was called
+    expect(mockClearAuthData).toHaveBeenCalledTimes(1);
   });
 
   it('should throw error when used outside of WristbandAuthProvider', () => {
@@ -61,16 +98,20 @@ describe('useWristbandAuth', () => {
   it('should work correctly in a component', () => {
     // Create a test component that uses the hook
     const TestComponent = () => {
-      const { isAuthenticated, isLoading, authStatus } = useWristbandAuth();
+      const { isAuthenticated, isLoading, authStatus, clearAuthData } = useWristbandAuth();
       return (
         <div>
           <div data-testid="auth-status">{authStatus}</div>
           <div data-testid="is-authenticated">{String(isAuthenticated)}</div>
           <div data-testid="is-loading">{String(isLoading)}</div>
+          <button data-testid="clear-auth" onClick={clearAuthData}>
+            Clear Auth
+          </button>
         </div>
       );
     };
 
+    const mockClearAuthData = vi.fn();
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
@@ -79,6 +120,9 @@ describe('useWristbandAuth', () => {
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
       updateMetadata: vi.fn(),
+      clearAuthData: mockClearAuthData,
+      clearToken: vi.fn(),
+      getToken: vi.fn(),
     };
 
     // Render the test component with the context provider
@@ -92,6 +136,12 @@ describe('useWristbandAuth', () => {
     expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
     expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
     expect(screen.getByTestId('is-loading').textContent).toBe('false');
+
+    // Test that clicking the button calls clearAuthData
+    act(() => {
+      screen.getByTestId('clear-auth').click();
+    });
+    expect(mockClearAuthData).toHaveBeenCalledTimes(1);
   });
 
   it('should handle all authentication states correctly', () => {
@@ -106,11 +156,15 @@ describe('useWristbandAuth', () => {
           tenantId: '',
           metadata: {},
           updateMetadata: vi.fn(),
+          clearAuthData: vi.fn(),
+          clearToken: vi.fn(),
+          getToken: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           isAuthenticated: false,
           isLoading: true,
           authStatus: AuthStatus.LOADING,
+          clearAuthData: expect.any(Function),
         },
       },
       {
@@ -122,11 +176,15 @@ describe('useWristbandAuth', () => {
           tenantId: 'tenant-456',
           metadata: { role: 'admin' },
           updateMetadata: vi.fn(),
+          clearAuthData: vi.fn(),
+          clearToken: vi.fn(),
+          getToken: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           isAuthenticated: true,
           isLoading: false,
           authStatus: AuthStatus.AUTHENTICATED,
+          clearAuthData: expect.any(Function),
         },
       },
       {
@@ -138,11 +196,15 @@ describe('useWristbandAuth', () => {
           tenantId: '',
           metadata: {},
           updateMetadata: vi.fn(),
+          clearAuthData: vi.fn(),
+          clearToken: vi.fn(),
+          getToken: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           isAuthenticated: false,
           isLoading: false,
           authStatus: AuthStatus.UNAUTHENTICATED,
+          clearAuthData: expect.any(Function),
         },
       },
     ];

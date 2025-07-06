@@ -29,33 +29,3 @@ export interface ApiResponse<T> {
   status: number;
   headers: Headers;
 }
-
-/**
- * Custom error class for API-related errors with additional HTTP context. Extends the standard Error class with
- * properties that provide more information about the HTTP error that occurred.
- *
- * @class ApiError
- * @extends {Error}
- * @property {number} [status] - The HTTP status code associated with the error.
- * @property {string} [statusText] - The status text from the HTTP response (e.g., "Not Found", "Internal Server Error").
- * @property {Response} [response] - The original Response object from the fetch call, which may contain additional information about the error.
- *
- * @example
- * try {
- *   await apiClient.get('/some-endpoint');
- * } catch (error) {
- *   if (error instanceof ApiError && error.status === 401) {
- *     console.log(`Authentication error: ${error.statusText}`);
- *   }
- * }
- */
-export class ApiError extends Error {
-  status?: number;
-  statusText?: string;
-  response?: Response;
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}

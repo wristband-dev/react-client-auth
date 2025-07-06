@@ -20,7 +20,7 @@
  * // Preserves existing return_url parameter
  */
 export function resolveAuthProviderLoginUrl(loginUrl: string): string {
-  if (!loginUrl) {
+  if (!loginUrl || !loginUrl.trim()) {
     throw new TypeError('WristbandAuthProvider: [loginUrl] is required');
   }
 
@@ -51,7 +51,7 @@ export function resolveAuthProviderLoginUrl(loginUrl: string): string {
  * not modify the URL in any way but simply validates it.
  *
  * @param {string} logoutUrl - The logout URL to validate
- * @throws {TypeError} If loginUrl is undefined, null, empty, or not a valid URL.
+ * @throws {TypeError} If logoutUrl is undefined, null, empty, or not a valid URL.
  *
  * @example
  * // Basic validation
@@ -64,7 +64,7 @@ export function resolveAuthProviderLoginUrl(loginUrl: string): string {
  * // Throws TypeError: "WristbandAuthProvider: [http://] is not a valid logoutUrl"
  */
 export function validateAuthProviderLogoutUrl(logoutUrl: string): void {
-  if (!logoutUrl) {
+  if (!logoutUrl || !logoutUrl.trim()) {
     throw new TypeError('WristbandAuthProvider: [logoutUrl] is required');
   }
 
@@ -85,7 +85,7 @@ export function validateAuthProviderLogoutUrl(logoutUrl: string): void {
  * does not modify the URL in any way but simply validates it.
  *
  * @param {string} sessionUrl - The session URL to validate
- * @throws {TypeError} If loginUrl is undefined, null, empty, or not a valid URL.
+ * @throws {TypeError} If sessionUrl is undefined, null, empty, or not a valid URL.
  *
  * @example
  * // Basic validation
@@ -98,7 +98,7 @@ export function validateAuthProviderLogoutUrl(logoutUrl: string): void {
  * // No error thrown, URL is valid
  */
 export function validateAuthProviderSessionUrl(sessionUrl: string): void {
-  if (!sessionUrl) {
+  if (!sessionUrl || !sessionUrl.trim()) {
     throw new TypeError('WristbandAuthProvider: [sessionUrl] is required');
   }
 
@@ -108,6 +108,36 @@ export function validateAuthProviderSessionUrl(sessionUrl: string): void {
       new URL(sessionUrl, window.location.origin);
     } catch {
       throw new TypeError(`WristbandAuthProvider: [${sessionUrl}] is not a valid sessionUrl`);
+    }
+  }
+}
+
+/**
+ * Validates a token URL for the Wristband Auth Provider.
+ *
+ * This function checks that the provided token URL is properly formatted and can be resolved to a valid URL. It
+ * does not modify the URL in any way but simply validates it.
+ *
+ * @param {string} tokenUrl - The token URL to validate
+ * @throws {TypeError} If tokenUrl is undefined, null, empty, or not a valid URL.
+ *
+ * @example
+ * // Basic validation
+ * validateAuthProviderTokenUrl('/api/auth/token');
+ * // No error thrown, URL is valid
+ *
+ * @example
+ * // With an absolute URL
+ * validateAuthProviderTokenUrl('https://auth.example.com/token');
+ * // No error thrown, URL is valid
+ */
+export function validateAuthProviderTokenUrl(tokenUrl?: string): void {
+  // For frameworks like NextJS, need to ensure this doesn't break in server-side environments.
+  if (typeof window !== 'undefined' && tokenUrl && tokenUrl.trim()) {
+    try {
+      new URL(tokenUrl, window.location.origin);
+    } catch {
+      throw new TypeError(`WristbandAuthProvider: [${tokenUrl}] is not a valid tokenUrl`);
     }
   }
 }

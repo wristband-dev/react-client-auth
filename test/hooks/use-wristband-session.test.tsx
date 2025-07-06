@@ -2,9 +2,9 @@ import React, { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, renderHook, act } from '@testing-library/react';
 
-import { useWristbandSession } from './use-wristband-session';
-import { WristbandAuthContext } from '../context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext } from '../types/auth-provider-types';
+import { useWristbandSession } from '../../src/hooks/use-wristband-session';
+import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
+import { AuthStatus, IWristbandAuthContext } from '../../src/types/auth-provider-types';
 
 // Type definition for a strongly-typed session example
 interface UserSessionData {
@@ -36,6 +36,9 @@ describe('useWristbandSession', () => {
         permissions: ['read', 'write', 'delete'],
       },
       updateMetadata: updateMetadataMock,
+      clearAuthData: () => {},
+      clearToken: () => {},
+      getToken: () => Promise.resolve(''),
     };
 
     // Use the context provider directly to verify it's being used
@@ -95,6 +98,9 @@ describe('useWristbandSession', () => {
         permissions: ['read', 'write', 'delete'],
       },
       updateMetadata: updateMetadataMock,
+      clearAuthData: () => {},
+      clearToken: () => {},
+      getToken: () => Promise.resolve(''),
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -122,6 +128,9 @@ describe('useWristbandSession', () => {
       tenantId: 'tenant-456',
       metadata: {},
       updateMetadata: vi.fn(),
+      clearAuthData: () => {},
+      clearToken: () => {},
+      getToken: () => Promise.resolve(''),
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -176,6 +185,9 @@ describe('useWristbandSession', () => {
         permissions: ['read', 'write', 'delete'],
       },
       updateMetadata: vi.fn(),
+      clearAuthData: () => {},
+      clearToken: () => {},
+      getToken: () => Promise.resolve(''),
     };
 
     // Render component that uses the hook
@@ -227,6 +239,9 @@ describe('useWristbandSession', () => {
         },
       },
       updateMetadata: updateMetadataMock,
+      clearAuthData: () => {},
+      clearToken: () => {},
+      getToken: () => Promise.resolve(''),
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (

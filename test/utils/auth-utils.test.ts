@@ -6,8 +6,8 @@ import {
   isHttpStatusError,
   isUnauthorizedError,
   isForbiddenError,
-} from './auth-utils';
-import { ApiError } from '../types/api-client-types';
+} from '../../src/utils/auth-utils';
+import { ApiError } from '../../src/error';
 
 describe('Auth utilities', () => {
   // Store the original window.location.href

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import { getCsrfToken } from './api-client-utils';
+import { getCsrfToken } from '../../src/utils/api-client-utils';
 
 describe('getCsrfToken', () => {
   // Store the original document.cookie
