@@ -1,3 +1,5 @@
+import { ApiError } from '../error';
+
 /**
  * Resolves and properly formats a login URL for the Wristband Auth Provider.
  *
@@ -141,3 +143,68 @@ export function validateAuthProviderTokenUrl(tokenUrl?: string): void {
     }
   }
 }
+
+/**
+ * Checks if an error represents an HTTP error with a specific error status code.
+ *
+ * @param {unknown} error - The error to check.
+ * @param {number} statusCode - The HTTP status code to check for.
+ * @returns {boolean} True if the error is an ApiError with the specified status code; false otherwise.
+ * @throws {TypeError} If the error is null or undefined.
+ *
+ * @example
+ * try {
+ *   const response = await fetch('/api/resource');
+ * } catch (error) {
+ *   if (isHttpStatusError(error, 401)) {
+ *     console.log('Unauthorized');
+ *   }
+ * }
+ */
+export function isHttpStatusError(error: unknown, statusCode: number): boolean {
+  if (error === null || error === undefined) {
+    throw new TypeError('Argument [error] cannot be null or undefined');
+  }
+
+  if (!(error instanceof ApiError)) {
+    return false;
+  }
+
+  return error.status === statusCode;
+}
+
+/**
+ * Checks if an error represents an HTTP 401 Unauthorized error.
+ *
+ * @param {unknown} error - The error to check.
+ * @returns {boolean} True if the error is an ApiError with a 401 status code; false otherwise.
+ * @throws {TypeError} If the error is null or undefined.
+ *
+ * @example
+ * try {
+ *   const response = await fetch('/api/resource');
+ * } catch (error) {
+ *   if (isUnauthorizedError(error)) {
+ *     console.log('Unauthorized');
+ *   }
+ * }
+ */
+export const isUnauthorizedError = (error: unknown) => isHttpStatusError(error, 401);
+
+// Helper function to check if error is 4xx
+export const is4xxError = (error: unknown): boolean => {
+  if (error === null || error === undefined) {
+    throw new TypeError('Argument [error] cannot be null or undefined');
+  }
+
+  if (!(error instanceof ApiError) || !error.status) {
+    return false;
+  }
+
+  return error?.status >= 400 && error?.status < 500;
+};
+
+// Helper function to delay execution
+export const delay = (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};

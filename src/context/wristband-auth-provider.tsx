@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { WristbandAuthContext } from './wristband-auth-context';
 import { AuthStatus, IWristbandAuthProviderProps, SessionResponse, TokenResponse } from '../types/auth-provider-types';
-import { isUnauthorizedError } from '../utils/auth-utils';
 import apiClient from '../api/api-client';
 import {
+  delay,
+  is4xxError,
+  isUnauthorizedError,
   resolveAuthProviderLoginUrl,
   validateAuthProviderLogoutUrl,
   validateAuthProviderSessionUrl,
@@ -12,7 +14,9 @@ import {
 } from '../utils/auth-provider-utils';
 import { WristbandTokenError } from '../error';
 
-const accessTokenExpirationBufferTime = 30000; // 30 seconds
+const TOKEN_EXPIRATION_BUFFER_TIME_MS = 30000;
+const MAX_API_ATTEMPTS = 3;
+const API_RETRY_DELAY_MS = 100;
 
 /**
  * WristbandAuthProvider establishes an authenticated session with your backend server
@@ -174,7 +178,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
     }
 
     // Check if we have a valid cached token (with 30 second buffer)
-    if (accessToken && accessTokenExpiresAt > Date.now() + accessTokenExpirationBufferTime) {
+    if (accessToken && accessTokenExpiresAt > Date.now() + TOKEN_EXPIRATION_BUFFER_TIME_MS) {
       return accessToken;
     }
 
@@ -183,24 +187,45 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
       return tokenRequestRef.current;
     }
 
-    // Create new token request - server will handle refresh using session cookie
+    // Create new token request; server will handle refresh using session cookie
     const tokenRequest = (async () => {
+      let lastError: unknown;
+
       try {
-        const response = await apiClient.get<TokenResponse>(validatedTokenUrl, { csrfCookieName, csrfHeaderName });
-        const { accessToken: newToken, expiresAt } = response.data;
-        setAccessToken(newToken);
-        setAccessTokenExpiresAt(expiresAt);
-        return newToken;
-      } catch (error) {
-        // If token fetch fails due to auth error, clear token state.
-        if (isUnauthorizedError(error)) {
-          // Clear token state on 401
-          setAccessToken('');
-          setAccessTokenExpiresAt(0);
-          throw new WristbandTokenError('UNAUTHENTICATED', 'Token request unauthorized', error);
+        for (let attempt = 1; attempt <= MAX_API_ATTEMPTS; attempt++) {
+          try {
+            const response = await apiClient.get<TokenResponse>(validatedTokenUrl, { csrfCookieName, csrfHeaderName });
+            const { accessToken: newToken, expiresAt } = response.data;
+            setAccessToken(newToken);
+            setAccessTokenExpiresAt(expiresAt);
+            return newToken;
+          } catch (error) {
+            lastError = error;
+
+            // If token fetch fails due to auth error, clear token state.
+            if (isUnauthorizedError(error)) {
+              setAccessToken('');
+              setAccessTokenExpiresAt(0);
+              throw new WristbandTokenError('UNAUTHENTICATED', 'Token request unauthorized', error);
+            }
+
+            // If it's any other 4xx error, bail early (don't retry client errors).
+            if (is4xxError(error)) {
+              throw new WristbandTokenError('TOKEN_FETCH_FAILED', 'Failed to fetch token', error);
+            }
+
+            // If this is the last attempt, throw the last error
+            if (attempt === MAX_API_ATTEMPTS) {
+              break;
+            }
+
+            // Wait before retrying (only for 5xx errors and network issues)
+            await delay(API_RETRY_DELAY_MS);
+          }
         }
 
-        throw new WristbandTokenError('TOKEN_FETCH_FAILED', 'Failed to fetch token', error);
+        // All attempts failed, so throw an error
+        throw new WristbandTokenError('TOKEN_FETCH_FAILED', 'Failed to fetch token', lastError);
       } finally {
         // Clear the in-flight request
         tokenRequestRef.current = null;
@@ -217,38 +242,61 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
    */
   useEffect(() => {
     const fetchSession = async () => {
-      try {
-        // The session API will let React know if the user has a previously authenticated session.
-        // If so, it will initialize session data.
-        const response = await apiClient.get<SessionResponse>(validatedSessionUrl, { csrfCookieName, csrfHeaderName });
-        const { userId, tenantId, metadata: rawMetadata } = response.data;
+      let lastError: unknown;
 
-        // Execute side effects callback before updating state if provided
-        if (onSessionSuccess) {
-          await Promise.resolve(onSessionSuccess(response.data));
-        }
+      for (let attempt = 1; attempt <= MAX_API_ATTEMPTS; attempt++) {
+        try {
+          // The session API will let React know if the user has a previously authenticated session.
+          // If so, it will initialize session data.
+          const response = await apiClient.get<SessionResponse>(validatedSessionUrl, {
+            csrfCookieName,
+            csrfHeaderName,
+          });
+          const { userId, tenantId, metadata: rawMetadata } = response.data;
 
-        // Apply transformation if provided
-        if (rawMetadata) {
-          setMetadata(
-            transformSessionMetadata ? transformSessionMetadata(rawMetadata) : (rawMetadata as TSessionMetaData)
-          );
-        }
+          // Execute side effects callback before updating state if provided
+          if (onSessionSuccess) {
+            await Promise.resolve(onSessionSuccess(response.data));
+          }
 
-        // Update remaining context state last
-        setTenantId(tenantId || '');
-        setUserId(userId || '');
-        setIsAuthenticated(true);
-        setIsLoading(false);
-      } catch (error: unknown) {
-        console.log(error);
-        if (disableRedirectOnUnauthenticated) {
-          setIsAuthenticated(false);
+          // Apply transformation if provided
+          if (rawMetadata) {
+            setMetadata(
+              transformSessionMetadata ? transformSessionMetadata(rawMetadata) : (rawMetadata as TSessionMetaData)
+            );
+          }
+
+          // Update remaining context state last
+          setTenantId(tenantId || '');
+          setUserId(userId || '');
+          setIsAuthenticated(true);
           setIsLoading(false);
-        } else {
-          // Don't call logout on 401 to preserve the current page for when the user returns after re-authentication.
-          window.location.href = isUnauthorizedError(error) ? resolvedLoginUrl : validatedLogoutUrl;
+          return;
+        } catch (error) {
+          lastError = error;
+
+          // If it's a 4xx error, bail early (don't retry client errors)
+          if (is4xxError(error)) {
+            break; // Exit retry loop for client errors
+          }
+
+          // If this is the last attempt, don't delay
+          if (attempt === MAX_API_ATTEMPTS) {
+            break;
+          }
+
+          // Wait before retrying (only for 5xx errors and network issues)
+          await delay(API_RETRY_DELAY_MS);
         }
+      }
+
+      console.log(lastError);
+      if (disableRedirectOnUnauthenticated) {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+      } else {
+        // Don't call logout on 401 to preserve the current page for when the user returns after re-authentication.
+        window.location.href = isUnauthorizedError(lastError) ? resolvedLoginUrl : validatedLogoutUrl;
       }
     };
 

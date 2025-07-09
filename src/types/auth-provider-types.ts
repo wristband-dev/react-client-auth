@@ -37,9 +37,7 @@ export interface IWristbandAuthContext<TSessionMetadata = unknown> {
    */
   authStatus: AuthStatus;
   /**
-   * Resets all authentication, session, and token data in the React context to initial/empty state.
-   *
-   * This function clears all auth-related state including authentication status, user data,
+   * This function clears all client-side auth state including authentication status, user data,
    * session metadata, and cached tokens. Use this when you need to completely reset the
    * SDK state, typically for testing, error recovery, or when implementing custom logout flows.
    *
@@ -78,8 +76,9 @@ export interface IWristbandAuthContext<TSessionMetadata = unknown> {
   clearToken: () => void;
   /**
    * Retrieves a valid access token for making authenticated API calls to resource servers. Returns a
-   * cached token if available and not expired, otherwise fetches a fresh token from the configured
-   * "tokenUrl" endpoint. Automatically handles token expiration and refresh using the user's session state.
+   * cached token if available and not expired; otherwise fetches a fresh token from the configured
+   * "tokenUrl" endpoint. Your server's Token Endpoint should automatically handle token expiration and
+   * refresh using the user's session cookie.
    *
    * If the token endpoint returns a 401 (unauthorized), the cached token state will be
    * automatically cleared and the user may be redirected to login depending on configuration.
