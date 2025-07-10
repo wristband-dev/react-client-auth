@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import { RequestOptions, ApiResponse, ApiError } from './api-client-types';
+import { RequestOptions, ApiResponse } from '../../src/types/api-client-types';
+import { ApiError } from '../../src/error';
 
 describe('API Client Types', () => {
   it('should allow creating RequestOptions objects with CSRF properties', () => {

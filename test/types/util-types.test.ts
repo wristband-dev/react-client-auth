@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { LoginRedirectConfig, LogoutRedirectConfig } from './util-types';
+import { LoginRedirectConfig, LogoutRedirectConfig } from '../../src/types/util-types';
 
 describe('Utility Types', () => {
   it('should allow creating LoginRedirectConfig objects with various properties', () => {

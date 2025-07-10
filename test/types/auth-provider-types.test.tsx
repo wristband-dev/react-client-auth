@@ -1,7 +1,11 @@
-import React from 'react';
 import { describe, it, expect } from 'vitest';
 
-import { AuthStatus, IWristbandAuthContext, IWristbandAuthProviderProps, SessionResponse } from './auth-provider-types';
+import {
+  AuthStatus,
+  IWristbandAuthContext,
+  IWristbandAuthProviderProps,
+  SessionResponse,
+} from '../../src/types/auth-provider-types';
 
 describe('Auth Provider Types', () => {
   // Test AuthStatus enum values
@@ -22,6 +26,9 @@ describe('Auth Provider Types', () => {
       tenantId: 'tenant-123',
       userId: 'user-456',
       updateMetadata: () => {},
+      clearAuthData: () => {},
+      clearToken: () => {},
+      getToken: () => Promise.resolve(''),
     };
 
     expect(contextValue).toBeDefined();
@@ -96,6 +103,9 @@ describe('Auth Provider Types', () => {
       tenantId: 'tenant-123',
       userId: 'user-456',
       updateMetadata: () => {},
+      clearAuthData: () => {},
+      clearToken: () => {},
+      getToken: () => Promise.resolve(''),
     };
 
     // Check that the metadata has the expected properties

@@ -2,8 +2,8 @@ import React, { useContext } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-import { WristbandAuthContext } from './wristband-auth-context';
-import { AuthStatus } from '../types/auth-provider-types';
+import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
+import { AuthStatus } from '../../src/types/auth-provider-types';
 
 describe('WristbandAuthContext', () => {
   it('provides context values to consuming components', () => {

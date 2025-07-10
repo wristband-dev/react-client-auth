@@ -1,13 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-import {
-  redirectToLogin,
-  redirectToLogout,
-  isHttpStatusError,
-  isUnauthorizedError,
-  isForbiddenError,
-} from './auth-utils';
-import { ApiError } from '../types/api-client-types';
+import { redirectToLogin, redirectToLogout } from '../../src/utils/auth-utils';
 
 describe('Auth utilities', () => {
   // Store the original window.location.href
@@ -239,83 +232,6 @@ describe('Auth utilities', () => {
       expect(url).toContain('/api/auth/logout?');
       expect(url).toContain('tenant_domain=acme-corp');
       expect(url).toContain('tenant_custom_domain=auth.acme.com');
-    });
-  });
-
-  describe('isHttpStatusError', () => {
-    it('should return true for ApiError with matching status code', () => {
-      const error = new ApiError('Request failed with status code 404');
-      error.status = 404;
-      expect(isHttpStatusError(error, 404)).toBe(true);
-    });
-
-    it('should return false for ApiError with non-matching status code', () => {
-      const error = new ApiError('Request failed with status code 404');
-      error.status = 404;
-      expect(isHttpStatusError(error, 500)).toBe(false);
-    });
-
-    it('should return false for non-ApiError instances', () => {
-      const error = new Error('Generic error');
-      expect(isHttpStatusError(error, 404)).toBe(false);
-    });
-
-    it('should throw TypeError for null error', () => {
-      expect(() => isHttpStatusError(null, 404)).toThrow(TypeError);
-      expect(() => isHttpStatusError(null, 404)).toThrow('Argument [error] cannot be null or undefined');
-    });
-
-    it('should throw TypeError for undefined error', () => {
-      expect(() => isHttpStatusError(undefined, 404)).toThrow(TypeError);
-      expect(() => isHttpStatusError(undefined, 404)).toThrow('Argument [error] cannot be null or undefined');
-    });
-  });
-
-  describe('isUnauthorizedError', () => {
-    it('should return true for 401 Unauthorized ApiError', () => {
-      const error = new ApiError('Request failed with status code 401');
-      error.status = 401;
-      expect(isUnauthorizedError(error)).toBe(true);
-    });
-
-    it('should return false for non-401 ApiError', () => {
-      const error = new ApiError('Request failed with status code 404');
-      error.status = 404;
-      expect(isUnauthorizedError(error)).toBe(false);
-    });
-
-    it('should return false for non-ApiError instances', () => {
-      const error = new Error('Generic error');
-      expect(isUnauthorizedError(error)).toBe(false);
-    });
-
-    it('should throw TypeError for null or undefined errors', () => {
-      expect(() => isUnauthorizedError(null)).toThrow('Argument [error] cannot be null or undefined');
-      expect(() => isUnauthorizedError(undefined)).toThrow('Argument [error] cannot be null or undefined');
-    });
-  });
-
-  describe('isForbiddenError', () => {
-    it('should return true for 403 Forbidden ApiError', () => {
-      const error = new ApiError('Request failed with status code 403');
-      error.status = 403;
-      expect(isForbiddenError(error)).toBe(true);
-    });
-
-    it('should return false for non-403 ApiError', () => {
-      const error = new ApiError('Request failed with status code 404');
-      error.status = 404;
-      expect(isForbiddenError(error)).toBe(false);
-    });
-
-    it('should return false for non-ApiError instances', () => {
-      const error = new Error('Generic error');
-      expect(isForbiddenError(error)).toBe(false);
-    });
-
-    it('should throw TypeError for null or undefined errors', () => {
-      expect(() => isForbiddenError(null)).toThrow('Argument [error] cannot be null or undefined');
-      expect(() => isForbiddenError(undefined)).toThrow('Argument [error] cannot be null or undefined');
     });
   });
 });

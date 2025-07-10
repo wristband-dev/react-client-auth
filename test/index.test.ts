@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import * as api from './index';
+import * as api from '../src/index';
 
 describe('Public API exports', () => {
   it('should export WristbandAuthProvider', () => {
@@ -38,7 +38,9 @@ describe('Public API exports', () => {
       'WristbandAuthProvider',
       'useWristbandAuth',
       'useWristbandSession',
+      'useWristbandToken',
       'AuthStatus',
+      'WristbandTokenError',
       'redirectToLogin',
       'redirectToLogout',
     ];

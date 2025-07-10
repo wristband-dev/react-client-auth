@@ -1,4 +1,3 @@
-import { ApiError } from '../types/api-client-types';
 import { LoginRedirectConfig, LogoutRedirectConfig } from '../types/util-types';
 
 const reservedLoginQueryKeys = ['login_hint', 'return_url', 'tenant_domain', 'tenant_custom_domain'];
@@ -135,68 +134,3 @@ export function redirectToLogout(logoutUrl: string, config: LogoutRedirectConfig
     window.location.href = resolvedUrl.toString();
   }
 }
-
-/**
- * Checks if an error represents an HTTP error with a specific error status code.
- *
- * @param {unknown} error - The error to check.
- * @param {number} statusCode - The HTTP status code to check for.
- * @returns {boolean} True if the error is an ApiError with the specified status code; false otherwise.
- * @throws {TypeError} If the error is null or undefined.
- *
- * @example
- * try {
- *   const response = await fetch('/api/resource');
- * } catch (error) {
- *   if (isHttpStatusError(error, 401)) {
- *     console.log('Unauthorized');
- *   }
- * }
- */
-export function isHttpStatusError(error: unknown, statusCode: number): boolean {
-  if (error === null || error === undefined) {
-    throw new TypeError('Argument [error] cannot be null or undefined');
-  }
-
-  if (!(error instanceof ApiError)) {
-    return false;
-  }
-
-  return error.status === statusCode;
-}
-
-/**
- * Checks if an error represents an HTTP 401 Unauthorized error.
- *
- * @param {unknown} error - The error to check.
- * @returns {boolean} True if the error is an ApiError with a 401 status code; false otherwise.
- * @throws {TypeError} If the error is null or undefined.
- *
- * @example
- * try {
- *   const response = await fetch('/api/resource');
- * } catch (error) {
- *   if (isUnauthorizedError(error)) {
- *     console.log('Unauthorized');
- *   }
- * }
- */
-export const isUnauthorizedError = (error: unknown) => isHttpStatusError(error, 401);
-
-/**
- * Checks if an error represents an HTTP 403 Forbidden error.
- *
- * @param {unknown} error - The error to check.
- * @returns {boolean} True if the error is an ApiError with a 403 status code; false otherwise.
- * @throws {TypeError} If the error is null or undefined.
- *
- * @example
- * try {
- *   const response = await fetch('/api/resource');
- * } catch (error) {
- *   if (isForbiddenError(error)) {
- *     console.log('Forbidden access');
- *   }
- * }
- */
-export const isForbiddenError = (error: unknown) => isHttpStatusError(error, 403);

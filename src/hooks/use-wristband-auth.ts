@@ -3,7 +3,10 @@ import { useContext } from 'react';
 import { WristbandAuthContext } from '../context/wristband-auth-context';
 import { IWristbandAuthContext } from '../types/auth-provider-types';
 
-export function useWristbandAuth(): Pick<IWristbandAuthContext, 'isAuthenticated' | 'isLoading' | 'authStatus'> {
+export function useWristbandAuth(): Pick<
+  IWristbandAuthContext,
+  'isAuthenticated' | 'isLoading' | 'authStatus' | 'clearAuthData'
+> {
   const context = useContext(WristbandAuthContext);
 
   if (context === undefined) {
@@ -11,6 +14,7 @@ export function useWristbandAuth(): Pick<IWristbandAuthContext, 'isAuthenticated
   }
 
   return {
+    clearAuthData: context.clearAuthData,
     isAuthenticated: context.isAuthenticated,
     isLoading: context.isLoading,
     authStatus: context.authStatus,

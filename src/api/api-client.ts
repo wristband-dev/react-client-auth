@@ -1,4 +1,5 @@
-import { ApiError, ApiResponse, RequestOptions } from '../types/api-client-types';
+import { ApiError } from '../error';
+import { ApiResponse, RequestOptions } from '../types/api-client-types';
 import { getCsrfToken } from '../utils/api-client-utils';
 
 /**
