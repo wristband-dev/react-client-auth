@@ -1,5 +1,7 @@
 import { PropsWithChildren } from 'react';
 
+import { WristbandError } from '../error';
+
 /**
  * Authentication status enum representing the possible states of user authentication.
  *
@@ -10,16 +12,16 @@ export enum AuthStatus {
   /**
    * The authentication state is currently being determined. This is the initial state during session validation.
    */
-  LOADING = 'loading',
+  LOADING = 'LOADING',
   /**
    * The user is successfully authenticated with a valid session. Protected resources can be accessed in this state.
    */
-  AUTHENTICATED = 'authenticated',
+  AUTHENTICATED = 'AUTHENTICATED',
   /**
    * The user is not authenticated or the session is invalid. Access to protected resources should be denied in this
    * state.
    */
-  UNAUTHENTICATED = 'unauthenticated',
+  UNAUTHENTICATED = 'UNAUTHENTICATED',
 }
 
 /**
@@ -31,6 +33,11 @@ export enum AuthStatus {
  * @template TSessionMetadata - Type for custom session metadata, defaulting to unknown.
  */
 export interface IWristbandAuthContext<TSessionMetadata = unknown> {
+  /**
+   * {@link WristbandError} object containing error details when authentication fails,
+   * or `null` when no error has occurred.
+   */
+  authError: WristbandError | null;
   /**
    * Current authentication status representing the state of the authentication process.
    * Use this for showing appropriate UI based on auth state (loading indicators, login forms, etc.)
@@ -153,7 +160,7 @@ export interface IWristbandAuthProviderProps<TSessionMetadata = unknown>
     csrfHeaderName?: string;
     /**
      * When true, unauthenticated users will remain on the current page instead of being redirected to your backend
-     * server's Login or Logout Endpoints. This is useful for public pages that have both authenticated and
+     * server's Login Endpoint. This is useful for public pages that have both authenticated and
      * unauthenticated states.
      * @default false
      */
@@ -163,12 +170,6 @@ export interface IWristbandAuthProviderProps<TSessionMetadata = unknown>
      * @required
      */
     loginUrl: string;
-    /**
-     * This URL should point to your backend server's Logout Endpoint that handles terminating the user's session in your
-     * application session as well as redirecting to Wristband's Logout Endpoint.
-     * @required
-     */
-    logoutUrl: string;
     /**
      * Callback that executes after a successful session response but before authentication state updates.
      *
@@ -294,4 +295,28 @@ export interface TokenResponse {
    * @example Date.now() + (60 * 60 * 1000) // Expires in 1 hour
    */
   expiresAt: number; // Unix timestamp in milliseconds
+}
+
+/**
+ * Error codes for failures in the Wristband SDK.
+ */
+export enum WristbandErrorCode {
+  /** An invalid login URL value was provided to the SDK. */
+  INVALID_LOGIN_URL = 'INVALID_LOGIN_URL',
+  /** An invalid logout URL value was provided to the SDK (primarily for `redirectToLogout()`). */
+  INVALID_LOGOUT_URL = 'INVALID_LOGOUT_URL',
+  /** The session endpoint response is missing required fields. */
+  INVALID_SESSION_RESPONSE = 'INVALID_SESSION_RESPONSE',
+  /** An invalid session URL value was provided to the SDK. */
+  INVALID_SESSION_URL = 'INVALID_SESSION_URL',
+  /** The token endpoint response is missing required fields. */
+  INVALID_TOKEN_RESPONSE = 'INVALID_TOKEN_RESPONSE',
+  /** An invalid token URL value was provided to the SDK (only occurs if using `getToken()`). */
+  INVALID_TOKEN_URL = 'INVALID_TOKEN_URL',
+  /** The session endpoint returned an error other than 401. */
+  SESSION_FETCH_FAILED = 'SESSION_FETCH_FAILED',
+  /** The token endpoint returned an error other than 401. */
+  TOKEN_FETCH_FAILED = 'TOKEN_FETCH_FAILED',
+  /** The user is not authenticated and cannot request a session or token. */
+  UNAUTHENTICATED = 'UNAUTHENTICATED',
 }

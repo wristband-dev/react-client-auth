@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 import { redirectToLogin, redirectToLogout } from '../../src/utils/auth-utils';
+import { WristbandError } from '../../src/error';
 
 describe('Auth utilities', () => {
   // Store the original window.location.href
@@ -35,24 +36,21 @@ describe('Auth utilities', () => {
     // Restore original location
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: {
-        href: originalHref,
-        origin: originalOrigin,
-      },
+      value: { href: originalHref, origin: originalOrigin },
     });
   });
 
   describe('redirectToLogin', () => {
     it('should throw if loginUrl is not provided', () => {
-      expect(() => redirectToLogin('')).toThrow('Redirect To Login: [loginUrl] is required');
-      expect(() => redirectToLogin(null as unknown as string)).toThrow('Redirect To Login: [loginUrl] is required');
+      expect(() => redirectToLogout('')).toThrow(WristbandError);
+      expect(() => redirectToLogin('')).toThrow('Redirect To Login: "loginUrl" is required');
+      expect(() => redirectToLogin(null as unknown as string)).toThrow('Redirect To Login: "loginUrl" is required');
       expect(() => redirectToLogin(undefined as unknown as string)).toThrow(
-        'Redirect To Login: [loginUrl] is required'
+        'Redirect To Login: "loginUrl" is required'
       );
     });
 
     it('should throw for invalid URLs', () => {
-      // Based on URL constructor behavior, these should definitely throw
       expect(() => redirectToLogin('http://')).toThrow();
       expect(() => redirectToLogin('//')).toThrow();
     });
@@ -159,15 +157,15 @@ describe('Auth utilities', () => {
 
   describe('redirectToLogout', () => {
     it('should throw if logoutUrl is not provided', () => {
-      expect(() => redirectToLogout('')).toThrow('Redirect To Logout: [logoutUrl] is required');
-      expect(() => redirectToLogout(null as unknown as string)).toThrow('Redirect To Logout: [logoutUrl] is required');
+      expect(() => redirectToLogout('')).toThrow(WristbandError);
+      expect(() => redirectToLogout('')).toThrow('Redirect To Logout: "logoutUrl" is required');
+      expect(() => redirectToLogout(null as unknown as string)).toThrow('Redirect To Logout: "logoutUrl" is required');
       expect(() => redirectToLogout(undefined as unknown as string)).toThrow(
-        'Redirect To Logout: [logoutUrl] is required'
+        'Redirect To Logout: "logoutUrl" is required'
       );
     });
 
     it('should throw for invalid URLs', () => {
-      // Based on URL constructor behavior, these should definitely throw
       expect(() => redirectToLogout('http://')).toThrow();
       expect(() => redirectToLogout('//')).toThrow();
     });

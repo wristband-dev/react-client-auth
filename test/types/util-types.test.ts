@@ -67,7 +67,6 @@ describe('Utility Types', () => {
       tenantCustomDomain: 'auth.acme.com',
     };
 
-    // Type checking (these assertions verify the type system is working)
     expect(typeof config.loginHint).toBe('string');
     expect(typeof config.returnUrl).toBe('string');
     expect(typeof config.tenantDomain).toBe('string');
@@ -80,7 +79,6 @@ describe('Utility Types', () => {
       tenantCustomDomain: 'auth.acme.com',
     };
 
-    // Type checking (these assertions verify the type system is working)
     expect(typeof config.tenantDomain).toBe('string');
     expect(typeof config.tenantCustomDomain).toBe('string');
   });

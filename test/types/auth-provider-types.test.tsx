@@ -10,15 +10,16 @@ import {
 describe('Auth Provider Types', () => {
   // Test AuthStatus enum values
   it('should have the correct AuthStatus enum values', () => {
-    expect(AuthStatus.LOADING).toBe('loading');
-    expect(AuthStatus.AUTHENTICATED).toBe('authenticated');
-    expect(AuthStatus.UNAUTHENTICATED).toBe('unauthenticated');
+    expect(AuthStatus.LOADING).toBe('LOADING');
+    expect(AuthStatus.AUTHENTICATED).toBe('AUTHENTICATED');
+    expect(AuthStatus.UNAUTHENTICATED).toBe('UNAUTHENTICATED');
   });
 
   // Test that interfaces exist and can be used
   it('should allow creating objects that match the auth context interface', () => {
     // Create a valid context object
     const contextValue: IWristbandAuthContext = {
+      authError: null,
       authStatus: AuthStatus.AUTHENTICATED,
       isAuthenticated: true,
       isLoading: false,
@@ -32,6 +33,7 @@ describe('Auth Provider Types', () => {
     };
 
     expect(contextValue).toBeDefined();
+    expect(contextValue.authError).toBeNull();
     expect(contextValue.authStatus).toBe(AuthStatus.AUTHENTICATED);
     expect(contextValue.isAuthenticated).toBe(true);
     expect(contextValue.isLoading).toBe(false);
@@ -44,14 +46,12 @@ describe('Auth Provider Types', () => {
     // Create a valid props object with required fields
     const minimalProps: IWristbandAuthProviderProps = {
       loginUrl: '/login',
-      logoutUrl: '/logout',
       sessionUrl: '/session',
     };
 
     // Create a valid props object with all fields
     const fullProps: IWristbandAuthProviderProps = {
       loginUrl: '/login',
-      logoutUrl: '/logout',
       sessionUrl: '/session',
       csrfCookieName: 'CSRF-TOKEN',
       csrfHeaderName: 'X-CSRF-TOKEN',
@@ -63,7 +63,6 @@ describe('Auth Provider Types', () => {
 
     expect(minimalProps).toBeDefined();
     expect(minimalProps.loginUrl).toBe('/login');
-    expect(minimalProps.logoutUrl).toBe('/logout');
     expect(minimalProps.sessionUrl).toBe('/session');
 
     expect(fullProps).toBeDefined();
@@ -96,6 +95,7 @@ describe('Auth Provider Types', () => {
     }
 
     const typedContext: IWristbandAuthContext<UserMetadata> = {
+      authError: null,
       authStatus: AuthStatus.AUTHENTICATED,
       isAuthenticated: true,
       isLoading: false,
@@ -132,7 +132,6 @@ describe('Auth Provider Types', () => {
 
     const typedProps: IWristbandAuthProviderProps<UserMetadata> = {
       loginUrl: '/login',
-      logoutUrl: '/logout',
       sessionUrl: '/session',
       transformSessionMetadata: transformFn,
     };
@@ -141,14 +140,8 @@ describe('Auth Provider Types', () => {
     expect(typeof typedProps.transformSessionMetadata).toBe('function');
 
     // Test the transform function works as expected
-    const result = typedProps.transformSessionMetadata?.({
-      displayName: 'Jane Doe',
-      userRole: 'admin',
-    });
+    const result = typedProps.transformSessionMetadata?.({ displayName: 'Jane Doe', userRole: 'admin' });
 
-    expect(result).toEqual({
-      name: 'Jane Doe',
-      role: 'admin',
-    });
+    expect(result).toEqual({ name: 'Jane Doe', role: 'admin' });
   });
 });

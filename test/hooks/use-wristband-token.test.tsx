@@ -5,8 +5,8 @@ import { fail } from 'assert';
 
 import { useWristbandToken } from '../../src/hooks/use-wristband-token';
 import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext } from '../../src/types/auth-provider-types';
-import { WristbandTokenError } from '../../src/error';
+import { AuthStatus, IWristbandAuthContext, WristbandErrorCode } from '../../src/types/auth-provider-types';
+import { WristbandError } from '../../src/error';
 
 describe('useWristbandToken', () => {
   // Reset any mocks before each test
@@ -22,6 +22,7 @@ describe('useWristbandToken', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -54,6 +55,7 @@ describe('useWristbandToken', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -80,16 +82,17 @@ describe('useWristbandToken', () => {
     expect(token!).toBe('test-token-123');
   });
 
-  it('should throw WristbandTokenError when user is not authenticated', async () => {
+  it('should throw WristbandError when user is not authenticated', async () => {
     const mockGetToken = vi
       .fn()
-      .mockRejectedValue(new WristbandTokenError('UNAUTHENTICATED', 'User is not authenticated'));
+      .mockRejectedValue(new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated'));
     const mockClearToken = vi.fn();
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: false,
       isLoading: false,
       authStatus: AuthStatus.UNAUTHENTICATED,
+      authError: null,
       userId: '',
       tenantId: '',
       metadata: {},
@@ -105,14 +108,14 @@ describe('useWristbandToken', () => {
 
     const { result } = renderHook(() => useWristbandToken(), { wrapper });
 
-    // Call getToken and expect it to reject with WristbandTokenError
+    // Call getToken and expect it to reject with WristbandError
     await act(async () => {
       try {
         await result.current.getToken();
-        fail('Expected a WristbandTokenError');
+        fail('Expected a WristbandError');
       } catch (error) {
-        expect(error).instanceOf(WristbandTokenError);
-        const testError = error as WristbandTokenError;
+        expect(error).instanceOf(WristbandError);
+        const testError = error as WristbandError;
         expect(testError.code).toBe('UNAUTHENTICATED');
         expect(testError.message).toBe('User is not authenticated');
         expect(testError.originalError).toBeUndefined();
@@ -121,16 +124,17 @@ describe('useWristbandToken', () => {
     expect(mockGetToken).toHaveBeenCalledTimes(1);
   });
 
-  it('should throw WristbandTokenError when tokenUrl is not configured', async () => {
+  it('should throw WristbandError when tokenUrl is not configured', async () => {
     const mockGetToken = vi
       .fn()
-      .mockRejectedValue(new WristbandTokenError('TOKEN_URL_NOT_CONFIGURED', 'Token URL not configured'));
+      .mockRejectedValue(new WristbandError(WristbandErrorCode.INVALID_TOKEN_URL, 'Token URL not configured'));
     const mockClearToken = vi.fn();
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -146,15 +150,15 @@ describe('useWristbandToken', () => {
 
     const { result } = renderHook(() => useWristbandToken(), { wrapper });
 
-    // Call getToken and expect it to reject with WristbandTokenError
+    // Call getToken and expect it to reject with WristbandError
     await act(async () => {
       try {
         await result.current.getToken();
-        fail('Expected a WristbandTokenError');
+        fail('Expected a WristbandError');
       } catch (error) {
-        expect(error).instanceOf(WristbandTokenError);
-        const testError = error as WristbandTokenError;
-        expect(testError.code).toBe('TOKEN_URL_NOT_CONFIGURED');
+        expect(error).instanceOf(WristbandError);
+        const testError = error as WristbandError;
+        expect(testError.code).toBe('INVALID_TOKEN_URL');
         expect(testError.message).toBe('Token URL not configured');
         expect(testError.originalError).toBeUndefined();
       }
@@ -162,11 +166,15 @@ describe('useWristbandToken', () => {
     expect(mockGetToken).toHaveBeenCalledTimes(1);
   });
 
-  it('should throw WristbandTokenError when token fetch fails due to 401', async () => {
+  it('should throw WristbandError when token fetch fails due to 401', async () => {
     const mockGetToken = vi
       .fn()
       .mockRejectedValue(
-        new WristbandTokenError('UNAUTHENTICATED', 'Token request unauthorized', new Error('401 Unauthorized'))
+        new WristbandError(
+          WristbandErrorCode.UNAUTHENTICATED,
+          'Token request unauthorized',
+          new Error('401 Unauthorized')
+        )
       );
     const mockClearToken = vi.fn();
 
@@ -174,6 +182,7 @@ describe('useWristbandToken', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -189,14 +198,14 @@ describe('useWristbandToken', () => {
 
     const { result } = renderHook(() => useWristbandToken(), { wrapper });
 
-    // Call getToken and expect it to reject with WristbandTokenError
+    // Call getToken and expect it to reject with WristbandError
     await act(async () => {
       try {
         await result.current.getToken();
-        fail('Expected a WristbandTokenError');
+        fail('Expected a WristbandError');
       } catch (error) {
-        expect(error).instanceOf(WristbandTokenError);
-        const testError = error as WristbandTokenError;
+        expect(error).instanceOf(WristbandError);
+        const testError = error as WristbandError;
         expect(testError.code).toBe('UNAUTHENTICATED');
         expect(testError.message).toBe('Token request unauthorized');
         expect(testError.originalError).toBeDefined();
@@ -205,11 +214,11 @@ describe('useWristbandToken', () => {
     expect(mockGetToken).toHaveBeenCalledTimes(1);
   });
 
-  it('should throw WristbandTokenError for general token fetch failures', async () => {
+  it('should throw WristbandError for general token fetch failures', async () => {
     const mockGetToken = vi
       .fn()
       .mockRejectedValue(
-        new WristbandTokenError('TOKEN_FETCH_FAILED', 'Failed to fetch token', new Error('Network error'))
+        new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Failed to fetch token', new Error('Network error'))
       );
     const mockClearToken = vi.fn();
 
@@ -217,6 +226,7 @@ describe('useWristbandToken', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -232,14 +242,14 @@ describe('useWristbandToken', () => {
 
     const { result } = renderHook(() => useWristbandToken(), { wrapper });
 
-    // Call getToken and expect it to reject with WristbandTokenError
+    // Call getToken and expect it to reject with WristbandError
     await act(async () => {
       try {
         await result.current.getToken();
-        fail('Expected a WristbandTokenError');
+        fail('Expected a WristbandError');
       } catch (error) {
-        expect(error).instanceOf(WristbandTokenError);
-        const testError = error as WristbandTokenError;
+        expect(error).instanceOf(WristbandError);
+        const testError = error as WristbandError;
         expect(testError.code).toBe('TOKEN_FETCH_FAILED');
         expect(testError.message).toBe('Failed to fetch token');
         expect(testError.originalError).toBeDefined();
@@ -257,6 +267,7 @@ describe('useWristbandToken', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -291,6 +302,7 @@ describe('useWristbandToken', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -331,7 +343,7 @@ describe('useWristbandToken', () => {
     const mockGetToken = vi
       .fn()
       .mockResolvedValueOnce('test-token-456')
-      .mockRejectedValueOnce(new WristbandTokenError('UNAUTHENTICATED', 'User is not authenticated'));
+      .mockRejectedValueOnce(new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated'));
     const mockClearToken = vi.fn();
 
     // Create a test component that uses the hook
@@ -346,7 +358,7 @@ describe('useWristbandToken', () => {
           const newToken = await getToken();
           setToken(newToken);
         } catch (err) {
-          if (err instanceof WristbandTokenError) {
+          if (err instanceof WristbandError) {
             setError(err.message);
           } else {
             setError('Unknown error');
@@ -379,6 +391,7 @@ describe('useWristbandToken', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },

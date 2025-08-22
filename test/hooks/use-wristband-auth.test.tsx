@@ -4,7 +4,8 @@ import { render, screen, renderHook } from '@testing-library/react';
 
 import { useWristbandAuth } from '../../src/hooks/use-wristband-auth';
 import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext } from '../../src/types/auth-provider-types';
+import { AuthStatus, IWristbandAuthContext, WristbandErrorCode } from '../../src/types/auth-provider-types';
+import { WristbandError } from '../../src/error';
 
 describe('useWristbandAuth', () => {
   // Reset any mocks before each test
@@ -19,6 +20,7 @@ describe('useWristbandAuth', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -38,6 +40,7 @@ describe('useWristbandAuth', () => {
 
     // The hook should return only the specified properties
     expect(result.current).toEqual({
+      authError: null,
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
@@ -46,7 +49,7 @@ describe('useWristbandAuth', () => {
 
     // Verify that the returned object only has the expected keys
     expect(Object.keys(result.current).sort()).toEqual(
-      ['authStatus', 'clearAuthData', 'isAuthenticated', 'isLoading'].sort()
+      ['authError', 'authStatus', 'clearAuthData', 'isAuthenticated', 'isLoading'].sort()
     );
   });
 
@@ -57,6 +60,7 @@ describe('useWristbandAuth', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -116,6 +120,7 @@ describe('useWristbandAuth', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: { role: 'admin' },
@@ -152,6 +157,7 @@ describe('useWristbandAuth', () => {
           isAuthenticated: false,
           isLoading: true,
           authStatus: AuthStatus.LOADING,
+          authError: null,
           userId: '',
           tenantId: '',
           metadata: {},
@@ -161,6 +167,7 @@ describe('useWristbandAuth', () => {
           getToken: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
+          authError: null,
           isAuthenticated: false,
           isLoading: true,
           authStatus: AuthStatus.LOADING,
@@ -172,6 +179,7 @@ describe('useWristbandAuth', () => {
           isAuthenticated: true,
           isLoading: false,
           authStatus: AuthStatus.AUTHENTICATED,
+          authError: null,
           userId: 'user-123',
           tenantId: 'tenant-456',
           metadata: { role: 'admin' },
@@ -181,6 +189,7 @@ describe('useWristbandAuth', () => {
           getToken: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
+          authError: null,
           isAuthenticated: true,
           isLoading: false,
           authStatus: AuthStatus.AUTHENTICATED,
@@ -192,6 +201,7 @@ describe('useWristbandAuth', () => {
           isAuthenticated: false,
           isLoading: false,
           authStatus: AuthStatus.UNAUTHENTICATED,
+          authError: null,
           userId: '',
           tenantId: '',
           metadata: {},
@@ -201,6 +211,7 @@ describe('useWristbandAuth', () => {
           getToken: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
+          authError: null,
           isAuthenticated: false,
           isLoading: false,
           authStatus: AuthStatus.UNAUTHENTICATED,
@@ -218,6 +229,95 @@ describe('useWristbandAuth', () => {
       const { result } = renderHook(() => useWristbandAuth(), { wrapper });
 
       expect(result.current).toEqual(expected);
+    });
+  });
+
+  it('should return authError when present in context', () => {
+    const mockError = new WristbandError(WristbandErrorCode.SESSION_FETCH_FAILED, 'Session failed');
+
+    const contextValue: IWristbandAuthContext = {
+      isAuthenticated: false,
+      isLoading: false,
+      authStatus: AuthStatus.UNAUTHENTICATED,
+      authError: mockError,
+      userId: '',
+      tenantId: '',
+      metadata: {},
+      updateMetadata: vi.fn(),
+      clearAuthData: vi.fn(),
+      clearToken: vi.fn(),
+      getToken: vi.fn(),
+    };
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
+    );
+
+    const { result } = renderHook(() => useWristbandAuth(), { wrapper });
+
+    expect(result.current.authError).toBe(mockError);
+    expect(result.current.authError?.code).toBe(WristbandErrorCode.SESSION_FETCH_FAILED);
+    expect(result.current.authError?.message).toBe('Session failed');
+  });
+
+  it('should not expose session or token data', () => {
+    const contextValue: IWristbandAuthContext = {
+      isAuthenticated: true,
+      isLoading: false,
+      authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
+      userId: 'user-123',
+      tenantId: 'tenant-456',
+      metadata: { role: 'admin' },
+      updateMetadata: vi.fn(),
+      clearAuthData: vi.fn(),
+      clearToken: vi.fn(),
+      getToken: vi.fn(),
+    };
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
+    );
+
+    const { result } = renderHook(() => useWristbandAuth(), { wrapper });
+
+    // Verify session/token data is NOT included
+    expect('userId' in result.current).toBe(false);
+    expect('tenantId' in result.current).toBe(false);
+    expect('metadata' in result.current).toBe(false);
+    expect('getToken' in result.current).toBe(false);
+    expect('clearToken' in result.current).toBe(false);
+    expect('updateMetadata' in result.current).toBe(false);
+  });
+
+  it('should handle different types of authError', () => {
+    const testCases = [
+      new WristbandError(WristbandErrorCode.INVALID_SESSION_RESPONSE, 'Invalid session'),
+      new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Token failed'),
+      new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'Not authenticated'),
+    ];
+
+    testCases.forEach((error) => {
+      const contextValue: IWristbandAuthContext = {
+        isAuthenticated: false,
+        isLoading: false,
+        authStatus: AuthStatus.UNAUTHENTICATED,
+        authError: error,
+        userId: '',
+        tenantId: '',
+        metadata: {},
+        updateMetadata: vi.fn(),
+        clearAuthData: vi.fn(),
+        clearToken: vi.fn(),
+        getToken: vi.fn(),
+      };
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
+      );
+
+      const { result } = renderHook(() => useWristbandAuth(), { wrapper });
+      expect(result.current.authError).toBe(error);
     });
   });
 });
