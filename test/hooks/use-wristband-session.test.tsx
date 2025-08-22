@@ -27,6 +27,7 @@ describe('useWristbandSession', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: {
@@ -89,6 +90,7 @@ describe('useWristbandSession', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: {
@@ -124,6 +126,7 @@ describe('useWristbandSession', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: {},
@@ -176,6 +179,7 @@ describe('useWristbandSession', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: {
@@ -227,6 +231,7 @@ describe('useWristbandSession', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
       metadata: {

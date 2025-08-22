@@ -1,4 +1,6 @@
+import { WristbandError } from '../error';
 import { LoginRedirectConfig, LogoutRedirectConfig } from '../types/util-types';
+import { WristbandErrorCode } from '../types/auth-provider-types';
 
 const reservedLoginQueryKeys = ['login_hint', 'return_url', 'tenant_domain', 'tenant_custom_domain'];
 const reservedLogoutQueryKeys = ['tenant_domain', 'tenant_custom_domain'];
@@ -13,7 +15,7 @@ const reservedLogoutQueryKeys = ['tenant_domain', 'tenant_custom_domain'];
  * @param {string} loginUrl - The login endpoint URL that handles authentication
  * @param {LoginRedirectConfig} config - Optional configuration for customizing the login experience
  * @returns {Promise<void>} A promise that resolves when the redirect is triggered
- * @throws {TypeError} If loginUrl is undefined, null, or empty.
+ * @throws {WristbandError} If loginUrl is undefined, null, or empty.
  *
  * @example
  * // Basic redirect to login endpoint
@@ -41,7 +43,7 @@ const reservedLogoutQueryKeys = ['tenant_domain', 'tenant_custom_domain'];
  */
 export function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = {}) {
   if (!loginUrl) {
-    throw new TypeError('Redirect To Login: [loginUrl] is required');
+    throw new WristbandError(WristbandErrorCode.INVALID_LOGIN_URL, 'Redirect To Login: "loginUrl" is required');
   }
 
   // For frameworks like NextJS, need to ensure this can only be attempted in the browser.
@@ -50,12 +52,18 @@ export function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = 
     try {
       resolvedUrl = new URL(loginUrl, window.location.origin);
     } catch {
-      throw new TypeError(`Invalid loginUrl: "${loginUrl}" is not a valid URL`);
+      throw new WristbandError(
+        WristbandErrorCode.INVALID_LOGIN_URL,
+        `Redirect To Login: "${loginUrl}" is not a valid login URL`
+      );
     }
 
     for (const key of reservedLoginQueryKeys) {
       if (resolvedUrl.searchParams.has(key)) {
-        throw new Error(`loginUrl must not include reserved query param: "${key}"`);
+        throw new WristbandError(
+          WristbandErrorCode.INVALID_LOGIN_URL,
+          `Redirect To Login: loginUrl must not include reserved query param: "${key}"`
+        );
       }
     }
 
@@ -83,7 +91,7 @@ export function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = 
  * @param {string} logoutUrl - The URL of your server's Logout Endpoint
  * @param {LogoutRedirectConfig} config - Optional configuration for the logout redirect
  * @returns {Promise<void>} A promise that resolves when the redirect is triggered
- * @throws {TypeError} If logoutUrl is undefined, null, or empty.
+ * @throws {WristbandError} If logoutUrl is undefined, null, or empty.
  *
  * @example
  * // Basic redirect to logout endpoint
@@ -103,7 +111,7 @@ export function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = 
  */
 export function redirectToLogout(logoutUrl: string, config: LogoutRedirectConfig = {}) {
   if (!logoutUrl) {
-    throw new TypeError('Redirect To Logout: [logoutUrl] is required');
+    throw new WristbandError(WristbandErrorCode.INVALID_LOGOUT_URL, 'Redirect To Logout: "logoutUrl" is required');
   }
 
   // For frameworks like NextJS, need to ensure this can only be attempted in the browser.
@@ -112,12 +120,18 @@ export function redirectToLogout(logoutUrl: string, config: LogoutRedirectConfig
     try {
       resolvedUrl = new URL(logoutUrl, window.location.origin);
     } catch {
-      throw new TypeError(`Invalid logoutUrl: "${logoutUrl}" is not a valid URL`);
+      throw new WristbandError(
+        WristbandErrorCode.INVALID_LOGOUT_URL,
+        `Redirect To Logout: "${logoutUrl}" is not a valid logout URL`
+      );
     }
 
     for (const key of reservedLogoutQueryKeys) {
       if (resolvedUrl.searchParams.has(key)) {
-        throw new Error(`logoutUrl must not include reserved query param: "${key}"`);
+        throw new WristbandError(
+          WristbandErrorCode.INVALID_LOGOUT_URL,
+          `Redirect To Logout: logoutUrl must not include reserved query param: "${key}"`
+        );
       }
     }
 

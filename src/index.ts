@@ -7,12 +7,12 @@ export { useWristbandSession } from './hooks/use-wristband-session';
 export { useWristbandToken } from './hooks/use-wristband-token';
 
 // Export types
-export { AuthStatus } from './types/auth-provider-types';
+export { AuthStatus, WristbandErrorCode } from './types/auth-provider-types';
 export type { SessionResponse } from './types/auth-provider-types';
 export type { LoginRedirectConfig, LogoutRedirectConfig } from './types/util-types';
 
 // Export errors
-export { WristbandTokenError } from './error';
+export { WristbandError } from './error';
 
 // Export utils
 export { redirectToLogin, redirectToLogout } from './utils/auth-utils';

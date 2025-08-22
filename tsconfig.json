@@ -21,13 +21,6 @@
     "noEmit": false,
     "types": ["vitest/globals", "node"]
   },
-  "include": ["src", "test/api/api-client.test.ts", "test/context/wristband-auth-context.test.tsx", "test/context/wristband-auth-provider.test.tsx", "test/hooks/use-wristband-token.test.tsx", "test/hooks/use-wristband-session.test.tsx", "test/hooks/use-wristband-auth.test.tsx", "test/index.test.ts", "test/utils/auth-utils.test.ts", "test/utils/auth-provider-utils.test.ts", "test/utils/api-client-utils.test.ts", "test/types/util-types.test.ts", "test/types/auth-provider-types.test.tsx", "test/types/api-client-types.test.ts"],
-  "exclude": [
-    "node_modules",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "test/**/*"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "test", "dist"]
 }

@@ -12,10 +12,14 @@ describe('WristbandAuthContext', () => {
       isAuthenticated: true,
       isLoading: false,
       authStatus: AuthStatus.AUTHENTICATED,
+      authError: null,
       userId: 'test-user-id',
       tenantId: 'test-tenant-id',
       metadata: { role: 'admin' },
       updateMetadata: vi.fn(),
+      clearAuthData: vi.fn(),
+      clearToken: vi.fn(),
+      getToken: vi.fn(),
     };
 
     // Test consumer component

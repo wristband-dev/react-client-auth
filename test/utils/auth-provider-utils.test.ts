@@ -6,7 +6,6 @@ import {
   isHttpStatusError,
   isUnauthorizedError,
   resolveAuthProviderLoginUrl,
-  validateAuthProviderLogoutUrl,
   validateAuthProviderSessionUrl,
   validateAuthProviderTokenUrl,
 } from '../../src/utils/auth-provider-utils';
@@ -152,31 +151,6 @@ describe('Auth Provider Utils', () => {
     });
   });
 
-  describe('validateAuthProviderLogoutUrl', () => {
-    it('should throw if logoutUrl is not provided', () => {
-      expect(() => validateAuthProviderLogoutUrl('')).toThrow('WristbandAuthProvider: [logoutUrl] is required');
-      expect(() => validateAuthProviderLogoutUrl(null as unknown as string)).toThrow(
-        'WristbandAuthProvider: [logoutUrl] is required'
-      );
-      expect(() => validateAuthProviderLogoutUrl(undefined as unknown as string)).toThrow(
-        'WristbandAuthProvider: [logoutUrl] is required'
-      );
-    });
-
-    it('should throw for invalid URLs', () => {
-      expect(() => validateAuthProviderLogoutUrl('http://')).toThrow(
-        'WristbandAuthProvider: [http://] is not a valid logoutUrl'
-      );
-      expect(() => validateAuthProviderLogoutUrl('//')).toThrow('WristbandAuthProvider: [//] is not a valid logoutUrl');
-    });
-
-    it('should not throw for valid URLs', () => {
-      expect(() => validateAuthProviderLogoutUrl('/api/auth/logout')).not.toThrow();
-      expect(() => validateAuthProviderLogoutUrl('https://auth.example.com/logout')).not.toThrow();
-      expect(() => validateAuthProviderLogoutUrl('/api/auth/logout?tenant=example')).not.toThrow();
-    });
-  });
-
   describe('validateAuthProviderSessionUrl', () => {
     it('should throw if sessionUrl is not provided', () => {
       expect(() => validateAuthProviderSessionUrl('')).toThrow('WristbandAuthProvider: [sessionUrl] is required');
@@ -246,10 +220,6 @@ describe('Auth Provider Utils', () => {
       expect(() => validateAuthProviderTokenUrl('https://auth.example.com/token?scope=read')).not.toThrow();
     });
   });
-
-  // Add these test cases to your existing auth-provider-utils test file:
-
-  // Add these test cases to your existing auth-provider-utils test file:
 
   describe('is4xxError', () => {
     it('should return true for 4xx status codes', () => {
@@ -331,7 +301,6 @@ describe('Auth Provider Utils', () => {
     });
   });
 
-  // Add test for server-side rendering scenarios
   describe('Server-side rendering compatibility', () => {
     let originalWindow: typeof window;
 
@@ -352,13 +321,6 @@ describe('Auth Provider Utils', () => {
       const result = resolveAuthProviderLoginUrl(loginUrl);
 
       expect(result).toBe(loginUrl);
-    });
-
-    it('validateAuthProviderLogoutUrl should not throw when window is undefined', () => {
-      // Simulate server-side environment
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (global as any).window;
-      expect(() => validateAuthProviderLogoutUrl('/api/auth/logout')).not.toThrow();
     });
 
     it('validateAuthProviderSessionUrl should not throw when window is undefined', () => {
@@ -406,10 +368,6 @@ describe('Auth Provider Utils', () => {
 
   // Add edge cases for validation functions
   describe('URL validation - additional edge cases', () => {
-    it('validateAuthProviderLogoutUrl should handle whitespace-only URLs', () => {
-      expect(() => validateAuthProviderLogoutUrl('   ')).toThrow('WristbandAuthProvider: [logoutUrl] is required');
-    });
-
     it('validateAuthProviderSessionUrl should handle whitespace-only URLs', () => {
       expect(() => validateAuthProviderSessionUrl('   ')).toThrow('WristbandAuthProvider: [sessionUrl] is required');
     });

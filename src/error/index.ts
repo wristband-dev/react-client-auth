@@ -1,3 +1,5 @@
+import { WristbandErrorCode } from '../types/auth-provider-types';
+
 /**
  * Custom error class for API-related errors with additional HTTP context. Extends the standard Error class with
  * properties that provide more information about the HTTP error that occurred.
@@ -29,36 +31,57 @@ export class ApiError extends Error {
 }
 
 /**
- * Represents an error encountered during token retrieval in the Wristband SDK. This error is thrown by
- * the `getToken()` function in the `useWristbandToken` hook when token acquisition fails. It provides a
- * specific error code for easier handling and debugging, along with the original error if available.
+ * Represents an error encountered in the Wristband SDK. This error is thrown by various SDK operations
+ * including session retrieval, token acquisition, and other authentication-related failures. It provides
+ * a specific error code for easier handling and debugging, along with the original error if available.
  *
- * @example
+ * @example Session error handling
+ * ```typescript
+ * const { authError } = useWristbandAuth();
+ *
+ * if (authError) {
+ *   switch (authError.code) {
+ *     case WristbandErrorCode.INVALID_SESSION_RESPONSE:
+ *       console.error('Session configuration error:', authError.message);
+ *       break;
+ *     case WristbandErrorCode.SESSION_FETCH_FAILED:
+ *       console.error('Session network error:', authError.message);
+ *       break;
+ *     default:
+ *       console.error('Unexpected error')
+ *   }
+ * }
+ * ```
+ *
+ * @example Token error handling
+ * ```typescript
  * try {
  *   const token = await getToken();
  * } catch (error) {
- *   if (error instanceof WristbandTokenError) {
- *     console.error(error.code); // e.g., 'UNAUTHENTICATED'
- *     console.error(error.message);
- *     console.error(error.originalError);
+ *   if (error instanceof WristbandError) {
+ *     switch (error.code) {
+ *       case WristbandErrorCode.UNAUTHENTICATED:
+ *         console.error('User not authenticated');
+ *         break;
+ *       case WristbandErrorCode.INVALID_TOKEN_RESPONSE:
+ *         console.error('Token endpoint configuration error:', error.message);
+ *         break;
+ *       case WristbandErrorCode.TOKEN_FETCH_FAILED:
+ *         console.error('Token network error:', error.message);
+ *         break;
+ *     }
  *   }
  * }
+ * ```
  */
-export class WristbandTokenError extends Error {
+export class WristbandError extends Error {
   /**
-   * @param code - A specific error code indicating the failure reason:
-   *   - `'UNAUTHENTICATED'`: The user is not authenticated and cannot request a token.
-   *   - `'TOKEN_FETCH_FAILED'`: The token endpoint returned an error other than 401.
-   *   - `'TOKEN_URL_NOT_CONFIGURED'`: The token URL was not set in the SDK config.
+   * @param code - The specific {@link WristbandErrorCode} indicating the failure reason.
    * @param message - A human-readable error message.
-   * @param originalError - (Optional) The original error thrown during the token request, if available.
+   * @param originalError - (Optional) The original error thrown during the request, if available.
    */
-  constructor(
-    public readonly code: 'UNAUTHENTICATED' | 'TOKEN_FETCH_FAILED' | 'TOKEN_URL_NOT_CONFIGURED',
-    message: string,
-    public readonly originalError?: unknown
-  ) {
+  constructor(public readonly code: WristbandErrorCode, message: string, public readonly originalError?: unknown) {
     super(message);
-    this.name = 'WristbandTokenError';
+    this.name = 'WristbandError';
   }
 }

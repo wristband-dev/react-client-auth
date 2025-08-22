@@ -5,7 +5,7 @@ import { IWristbandAuthContext } from '../types/auth-provider-types';
 
 export function useWristbandAuth(): Pick<
   IWristbandAuthContext,
-  'isAuthenticated' | 'isLoading' | 'authStatus' | 'clearAuthData'
+  'isAuthenticated' | 'isLoading' | 'authStatus' | 'authError' | 'clearAuthData'
 > {
   const context = useContext(WristbandAuthContext);
 
@@ -14,9 +14,10 @@ export function useWristbandAuth(): Pick<
   }
 
   return {
+    authError: context.authError,
+    authStatus: context.authStatus,
     clearAuthData: context.clearAuthData,
     isAuthenticated: context.isAuthenticated,
     isLoading: context.isLoading,
-    authStatus: context.authStatus,
   };
 }

@@ -36,6 +36,7 @@ The SDK handles authentication interactions in your appâ€™s React frontend. Itâ€
 
 On an older version of our SDK? Check out our migration guide:
 
+- [Instructions for migrating to Version 2.x (latest)](migration/v2/README.md)
 - [Instructions for migrating to Version 1.x](migration/v1/README.md)
 
 <br>
@@ -61,9 +62,8 @@ yarn add @wristband/react-client-auth
 
 The `WristbandAuthProvider` establishes and manages authentication state throughout your application. This component fetches the user's session data from your backend server and makes it available via React Context.
 
-The provider requires three URL endpoints:
+The provider requires two URL endpoints:
 - `loginUrl`: The URL of your backend server's Login Endpoint that initiates the authentication process.
-- `logoutUrl`: The URL of your backend server's Logout Endpoint that handles session termination.
 - `sessionUrl`: The URL of your backend server's Session Endpoint that returns the current user's session data.
 
 Place the `WristbandAuthProvider` at your app's root to ensure the user's authenticated state is available throughout your application and verified on initial load.
@@ -75,7 +75,6 @@ function App() {
   return (
     <WristbandAuthProvider
       loginUrl="https://your-server.com/api/auth/login"
-      logoutUrl="https://your-server.com/api/auth/logout"
       sessionUrl="https://your-server.com/api/v1/session"
     >
       <YourAppComponents />
@@ -99,7 +98,6 @@ function AppRoot() {
   return (
     <WristbandAuthProvider<MySessionMetadata>
       loginUrl='/api/auth/login'
-      logoutUrl='/api/auth/logout'
       sessionUrl='/api/v1/session'
     >
       <App />
@@ -118,6 +116,7 @@ This hook provides authentication status information and functionality:
 
 - `isAuthenticated`: Boolean indicating if the user has an authenticated session.
 - `isLoading`: Boolean indicating if the authentication status is still being determined.
+- `authError`: WristbandError object containing error details when authentication fails, or `null` when no error has occurred.
 - `authStatus`: Enum value for convenience (`LOADING`, `AUTHENTICATED`, or `UNAUTHENTICATED`).
 - `clearAuthData()`: Function that destroys all auth, session, and token data (auth status becomes `UNAUTHENTICATED`).
 
@@ -127,7 +126,7 @@ Use this hook when you need to control access to protected content by checking a
 import { useWristbandAuth } from '@wristband/react-client-auth';
 
 function AuthStatus() {
-  const { isAuthenticated, isLoading, authStatus, clearAuthData } = useWristbandAuth();
+  const { authError, isAuthenticated, isLoading, authStatus, clearAuthData } = useWristbandAuth();
   
   if (isLoading) {
     return <div>Checking authentication status...</div>;
@@ -140,6 +139,12 @@ function AuthStatus() {
         <button onClick={() => alert(`I'm authenticated!!`)}>
           Show Auth
         </button>
+      )}
+      {authError && (
+        <>
+          <p>Error code: {authError.code}</p>
+          <p>Error message: {authError.message}</p>
+        </>
       )}
     </div>
   );
@@ -271,7 +276,6 @@ function App() {
   return (
     <WristbandAuthProvider
       loginUrl="https://your-server.com/api/auth/login"
-      logoutUrl="https://your-server.com/api/auth/logout"
       sessionUrl="https://your-server.com/api/v1/session"
       tokenUrl="https://your-server.com/api/v1/token" // Your server's Token Endpoint
     >
@@ -426,7 +430,6 @@ function App() {
   return (
     <WristbandAuthProvider<UserMetadata>
       loginUrl="/api/auth/login"
-      logoutUrl="/api/auth/logout"
       sessionUrl="/api/auth/session"
       transformSessionMetadata={(rawMetadata: unknown): UserMetadata => {
         const metadata = rawMetadata as RawMetadata;
@@ -492,7 +495,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <WristbandAuthProvider
         loginUrl="/api/auth/login"
-        logoutUrl="/api/auth/logout"
         sessionUrl="/api/v1/session"
         onSessionSuccess={(sessionResponse: SessionResponse) => {
           const { metadata, tenantId, userId } = sessionResponse;
@@ -532,7 +534,6 @@ export default function App() {
   return (
     <WristbandAuthProvider<UserMetadata>
       loginUrl="/api/auth/login"
-      logoutUrl="/api/auth/logout"
       sessionUrl="/api/auth/session"
       csrfCookieName="CSRF_TOKEN"
       csrfHeaderName="X-CSRF-TOKEN"
@@ -559,7 +560,6 @@ export default function App() {
 | csrfHeaderName | string | No | Name of the CSRF header that will be sent with authenticated requests to your Session Endpoint. This should match the header name your server expects for CSRF validation.<br><br> Default: `X-CSRF-TOKEN` |
 | disableRedirectOnUnauthenticated | boolean | No | When `true`, unauthenticated users will remain on the current page instead of being redirected to your backend server's Login or Logout Endpoints. This is useful for public pages that have both authenticated and unauthenticated states.<br><br> Default: `false` |
 | loginUrl | string | Yes | The URL of your backend server's Login Endpoint that handles the authentication flow with Wristband. |
-| logoutUrl | string | Yes | The URL of your backend server's Logout Endpoint that handles terminating the user's session in your application and redirecting to Wristband's Logout Endpoint. |
 | onSessionSuccess | `(sessionResponse: SessionResponse) => Promise<void> \| void` | No | Function that executes after a successful session response but before authentication state updates. If this function returns a Promise, the authentication state update will be delayed until the Promise resolves. This is useful for post-authentication tasks including data prefetching, service configuration, global state initialization, and more. |
 | sessionUrl | string | Yes | The URL of your server's Session Endpoint, which returns an authenticated user's userId, tenantId, and any optional metadata. |
 | transformSessionMetadata | `(rawSessionMetadata: unknown) => TSessionMetadata` | No | Function to transform raw metadata from the session response before storing it in context. Useful for converting data types, adding computed properties, filtering unnecessary properties, and ensuring type safety. |
@@ -574,11 +574,12 @@ export default function App() {
 import { useWristbandAuth } from '@wristband/react-client-auth';
 
 function AuthHook() {
-  const { authStatus, clearAuthData, isAuthenticated, isLoading } = useWristbandAuth();
+  const { authError, authStatus, clearAuthData, isAuthenticated, isLoading } = useWristbandAuth();
   
   return (
     <div>
       <p>authStatus: {authStatus}</p>
+      <p>authError: {authError ? authError.message : 'None'}</p>
       <p>isAuthenticated: {isAuthenticated}</p>
       <p>isLoading: {isLoading}</p>
       <button onClick={() => clearAuthData()}>
@@ -591,10 +592,25 @@ function AuthHook() {
 
 | Field | Type | Description |
 | ----- | ---- | ----------- |
+| authError | `WristbandError` or `null` | An error object details when session fetching or authentication fails. Provides error codes and messages for debugging. Only populated when `disableRedirectOnUnauthenticated` is true; otherwise, users are redirected to login on errors. If no error is encountered, then the value is `null`. |
 | authStatus | `AuthStatus` (enum) | Represents the current authentication status.<br><br> Possible values: `LOADING`, `AUTHENTICATED`, or `UNAUTHENTICATED`. |
-| clearAuthData | `() => void` | This function clears all client-side auth state including authentication status, user data, session metadata, and cached tokens. |
-| isAuthenticated | boolean | A boolean indicator that is `true` when the user is authenticated and `false` otherwise.
+| clearAuthData | `() => void` | This function clears all client-side auth state including authentication status, user data, session metadata, cached tokens, and errors. |
+| isAuthenticated | boolean | A boolean indicator that is `true` when the user is authenticated and `false` otherwise. |
 | isLoading | boolean | A boolean indicator that is `true` when the authentication status is still being determined (e.g., during the initial session check) and `false` once the status is determined. |
+
+In the event an `authError` occurs, the `WristbandError` can have any of the following error codes:
+
+| Wristband Error Code | Description |
+| -------------------- | ----------- |
+| `INVALID_LOGIN_URL` | An invalid login URL value was provided to the SDK. |
+| `INVALID_LOGOUT_URL` | An invalid logout URL value was provided to the SDK (primarily for `redirectToLogout()`). |
+| `INVALID_SESSION_RESPONSE` | The session endpoint response is missing required fields. |
+| `INVALID_SESSION_URL` | An invalid session URL value was provided to the SDK. |
+| `INVALID_TOKEN_RESPONSE` | The token endpoint response is missing required fields. |
+| `INVALID_TOKEN_URL` | An invalid token URL value was provided to the SDK (only occurs if using `getToken()`). |
+| `SESSION_FETCH_FAILED` | The session endpoint returned an error other than 401. |
+| `TOKEN_FETCH_FAILED` | The token endpoint returned an error other than 401. |
+| `UNAUTHENTICATED` | The user is not authenticated and cannot request a session or token (typicaly from a 401 error). |
 
 <br/>
 

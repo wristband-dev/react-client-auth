@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { WristbandAuthContext } from './wristband-auth-context';
-import { AuthStatus, IWristbandAuthProviderProps, SessionResponse, TokenResponse } from '../types/auth-provider-types';
+import {
+  AuthStatus,
+  IWristbandAuthProviderProps,
+  SessionResponse,
+  TokenResponse,
+  WristbandErrorCode,
+} from '../types/auth-provider-types';
 import apiClient from '../api/api-client';
 import {
   delay,
   is4xxError,
   isUnauthorizedError,
   resolveAuthProviderLoginUrl,
-  validateAuthProviderLogoutUrl,
   validateAuthProviderSessionUrl,
   validateAuthProviderTokenUrl,
 } from '../utils/auth-provider-utils';
-import { WristbandTokenError } from '../error';
+import { WristbandError } from '../error';
 
 const TOKEN_EXPIRATION_BUFFER_TIME_MS = 30000;
 const MAX_API_ATTEMPTS = 3;
@@ -32,7 +37,6 @@ const API_RETRY_DELAY_MS = 100;
  *   return (
  *     <WristbandAuthProvider
  *       loginUrl="/api/auth/login"
- *       logoutUrl="/api/auth/logout"
  *       sessionUrl="/api/auth/session"
  *     >
  *       <YourAppComponents />
@@ -47,7 +51,6 @@ const API_RETRY_DELAY_MS = 100;
  *   return (
  *     <WristbandAuthProvider
  *       loginUrl="/api/auth/login"
- *       logoutUrl="/api/auth/logout"
  *       sessionUrl="/api/auth/session"
  *       tokenUrl="/api/auth/token"
  *     >
@@ -65,7 +68,6 @@ const API_RETRY_DELAY_MS = 100;
  *   return (
  *     <WristbandAuthProvider
  *       loginUrl="/api/auth/login"
- *       logoutUrl="/api/auth/logout"
  *       sessionUrl="/api/auth/session"
  *       transformSessionMetadata={(rawMetadata) => ({
  *         name: rawMetadata.displayName,
@@ -96,7 +98,6 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   csrfHeaderName = 'X-CSRF-TOKEN',
   disableRedirectOnUnauthenticated = false,
   loginUrl,
-  logoutUrl,
   onSessionSuccess,
   sessionUrl,
   tokenUrl = '',
@@ -105,6 +106,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   // Internal State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [authError, setAuthError] = useState<WristbandError | null>(null);
   const [userId, setUserId] = useState<string>('');
   const [tenantId, setTenantId] = useState<string>('');
   const [metadata, setMetadata] = useState<TSessionMetaData>({} as TSessionMetaData);
@@ -121,20 +123,18 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
     ? AuthStatus.AUTHENTICATED
     : AuthStatus.UNAUTHENTICATED;
 
-  const { resolvedLoginUrl, validatedLogoutUrl, validatedSessionUrl, validatedTokenUrl } = useMemo(() => {
+  const { resolvedLoginUrl, validatedSessionUrl, validatedTokenUrl } = useMemo(() => {
     // All validations happen first before any useEffect
-    validateAuthProviderLogoutUrl(logoutUrl);
     validateAuthProviderSessionUrl(sessionUrl);
     if (tokenUrl) {
       validateAuthProviderTokenUrl(tokenUrl);
     }
     return {
       resolvedLoginUrl: resolveAuthProviderLoginUrl(loginUrl),
-      validatedLogoutUrl: logoutUrl,
       validatedSessionUrl: sessionUrl,
       validatedTokenUrl: tokenUrl,
     };
-  }, [loginUrl, logoutUrl, sessionUrl, tokenUrl]);
+  }, [loginUrl, sessionUrl, tokenUrl]);
 
   /**
    * Destroys all auth, session, and token data.
@@ -143,6 +143,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
     clearToken();
     setIsAuthenticated(false);
     setIsLoading(false);
+    setAuthError(null);
     setTenantId('');
     setUserId('');
     setMetadata({} as TSessionMetaData);
@@ -170,11 +171,11 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
    */
   const getToken = useCallback(async (): Promise<string> => {
     if (!validatedTokenUrl || !validatedTokenUrl.trim()) {
-      throw new WristbandTokenError('TOKEN_URL_NOT_CONFIGURED', 'Token URL not configured');
+      throw new WristbandError(WristbandErrorCode.INVALID_TOKEN_URL, 'Token URL not configured');
     }
 
     if (!isAuthenticated) {
-      throw new WristbandTokenError('UNAUTHENTICATED', 'User is not authenticated');
+      throw new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated');
     }
 
     // Check if we have a valid cached token (with 30 second buffer)
@@ -196,22 +197,42 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
           try {
             const response = await apiClient.get<TokenResponse>(validatedTokenUrl, { csrfCookieName, csrfHeaderName });
             const { accessToken: newToken, expiresAt } = response.data;
+
+            if (!newToken || !newToken.trim()) {
+              throw new WristbandError(
+                WristbandErrorCode.INVALID_TOKEN_RESPONSE,
+                'Token Endpoint response is missing required field: "accessToken"'
+              );
+            }
+
+            if (expiresAt === undefined || expiresAt === null || expiresAt < 0) {
+              throw new WristbandError(
+                WristbandErrorCode.INVALID_TOKEN_RESPONSE,
+                'Token Endpoint response is missing required field: "expiresAt"'
+              );
+            }
+
             setAccessToken(newToken);
             setAccessTokenExpiresAt(expiresAt);
             return newToken;
           } catch (error) {
             lastError = error;
 
+            // Just bubble up invalid response errors
+            if (error instanceof WristbandError) {
+              throw error;
+            }
+
             // If token fetch fails due to auth error, clear token state.
             if (isUnauthorizedError(error)) {
               setAccessToken('');
               setAccessTokenExpiresAt(0);
-              throw new WristbandTokenError('UNAUTHENTICATED', 'Token request unauthorized', error);
+              throw new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'Token request unauthorized', error);
             }
 
             // If it's any other 4xx error, bail early (don't retry client errors).
             if (is4xxError(error)) {
-              throw new WristbandTokenError('TOKEN_FETCH_FAILED', 'Failed to fetch token', error);
+              throw new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Failed to fetch token', error);
             }
 
             // If this is the last attempt, throw the last error
@@ -225,7 +246,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
         }
 
         // All attempts failed, so throw an error
-        throw new WristbandTokenError('TOKEN_FETCH_FAILED', 'Failed to fetch token', lastError);
+        throw new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Failed to fetch token', lastError);
       } finally {
         // Clear the in-flight request
         tokenRequestRef.current = null;
@@ -242,7 +263,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
    */
   useEffect(() => {
     const fetchSession = async () => {
-      let lastError: unknown;
+      let lastError: WristbandError | null = null;
 
       for (let attempt = 1; attempt <= MAX_API_ATTEMPTS; attempt++) {
         try {
@@ -253,6 +274,20 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
             csrfHeaderName,
           });
           const { userId, tenantId, metadata: rawMetadata } = response.data;
+
+          if (!userId || !userId.trim()) {
+            throw new WristbandError(
+              WristbandErrorCode.INVALID_SESSION_RESPONSE,
+              'Session Endpoint response is missing required field: "userId"'
+            );
+          }
+
+          if (!tenantId || !tenantId.trim()) {
+            throw new WristbandError(
+              WristbandErrorCode.INVALID_SESSION_RESPONSE,
+              'Session Endpoint response is missing required field: "tenantId"'
+            );
+          }
 
           // Execute side effects callback before updating state if provided
           if (onSessionSuccess) {
@@ -267,21 +302,32 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
           }
 
           // Update remaining context state last
-          setTenantId(tenantId || '');
-          setUserId(userId || '');
+          setTenantId(tenantId);
+          setUserId(userId);
           setIsAuthenticated(true);
           setIsLoading(false);
+          setAuthError(null);
           return;
         } catch (error) {
-          lastError = error;
+          // Always bubble up invalid response errors (represents a dev configuration error)
+          if (error instanceof WristbandError) {
+            throw error;
+          }
 
-          // If it's a 4xx error, bail early (don't retry client errors)
+          if (isUnauthorizedError(error)) {
+            lastError = new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated', error);
+            break;
+          }
+
+          // If it's a non-401 4xx error, bail early (don't retry client errors)
           if (is4xxError(error)) {
-            break; // Exit retry loop for client errors
+            lastError = new WristbandError(WristbandErrorCode.SESSION_FETCH_FAILED, 'Failed to fetch session', error);
+            break;
           }
 
           // If this is the last attempt, don't delay
           if (attempt === MAX_API_ATTEMPTS) {
+            lastError = new WristbandError(WristbandErrorCode.SESSION_FETCH_FAILED, 'Failed to fetch session', error);
             break;
           }
 
@@ -290,13 +336,13 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
         }
       }
 
-      console.log(lastError);
       if (disableRedirectOnUnauthenticated) {
+        setAuthError(lastError);
         setIsAuthenticated(false);
         setIsLoading(false);
       } else {
-        // Don't call logout on 401 to preserve the current page for when the user returns after re-authentication.
-        window.location.href = isUnauthorizedError(lastError) ? resolvedLoginUrl : validatedLogoutUrl;
+        // Preserve the current page for when the user returns after re-authentication.
+        window.location.href = resolvedLoginUrl;
       }
     };
 
@@ -307,6 +353,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   return (
     <WristbandAuthContext.Provider
       value={{
+        authError,
         authStatus,
         clearAuthData,
         clearToken,

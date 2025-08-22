@@ -20,7 +20,6 @@ vi.mock('../../src/utils/auth-provider-utils', () => ({
   isUnauthorizedError: vi.fn((error) => error.status === 401),
   is4xxError: vi.fn((error) => error?.status >= 400 && error?.status < 500),
   resolveAuthProviderLoginUrl: vi.fn((url) => url + '?return_url=https%3A%2F%2Fcurrent-page.com%2Fpath'),
-  validateAuthProviderLogoutUrl: vi.fn(),
   validateAuthProviderSessionUrl: vi.fn(),
   validateAuthProviderTokenUrl: vi.fn(),
 }));
@@ -46,6 +45,7 @@ const TestConsumer = () => {
   const context = useContext(WristbandAuthContext);
   return (
     <div>
+      <div data-testid="auth-error">{JSON.stringify(context?.authError)}</div>
       <div data-testid="auth-status">{context?.authStatus}</div>
       <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
       <div data-testid="is-loading">{String(context?.isLoading)}</div>
@@ -59,8 +59,22 @@ const TestConsumer = () => {
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const TestConsumerWithAuthError = () => {
+  const context = useContext(WristbandAuthContext);
+  return (
+    <div>
+      <div data-testid="auth-error">{context?.authError?.message || 'no-error'}</div>
+      <div data-testid="auth-error-code">{context?.authError?.code || 'no-code'}</div>
+      <div data-testid="auth-status">{context?.authStatus}</div>
+      <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+      <div data-testid="is-loading">{String(context?.isLoading)}</div>
+    </div>
+  );
+};
+
 describe('WristbandAuthProvider', () => {
-  const defaultProps = { loginUrl: '/api/auth/login', logoutUrl: '/api/auth/logout', sessionUrl: '/api/auth/session' };
+  const defaultProps = { loginUrl: '/api/auth/login', sessionUrl: '/api/auth/session' };
 
   // Store original console methods
   const originalConsoleLog = console.log;
@@ -98,7 +112,6 @@ describe('WristbandAuthProvider', () => {
 
     // Verify that auth provider utility functions were called with correct args
     expect(authProviderUtils.resolveAuthProviderLoginUrl).toHaveBeenCalledWith(defaultProps.loginUrl);
-    expect(authProviderUtils.validateAuthProviderLogoutUrl).toHaveBeenCalledWith(defaultProps.logoutUrl);
     expect(authProviderUtils.validateAuthProviderSessionUrl).toHaveBeenCalledWith(defaultProps.sessionUrl);
   });
 
@@ -126,6 +139,7 @@ describe('WristbandAuthProvider', () => {
       </WristbandAuthProvider>
     );
 
+    expect(screen.getByTestId('auth-error').textContent).toBe('null');
     expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.LOADING.toString());
     expect(screen.getByTestId('is-loading').textContent).toBe('true');
     expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
@@ -151,6 +165,7 @@ describe('WristbandAuthProvider', () => {
 
     // Wait for session to be fetched
     await waitFor(() => {
+      expect(screen.getByTestId('auth-error').textContent).toBe('null');
       expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
       expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
@@ -240,7 +255,7 @@ describe('WristbandAuthProvider', () => {
     });
   });
 
-  it('redirects to logout on other errors by default', async () => {
+  it('redirects to login on other errors by default', async () => {
     // Mock console.log to prevent error output in tests
     console.log = vi.fn();
 
@@ -257,33 +272,8 @@ describe('WristbandAuthProvider', () => {
     );
 
     await waitFor(() => {
-      // Check that we redirected to the logout URL
-      expect(window.location.href).toBe(defaultProps.logoutUrl);
-    });
-  });
-
-  it('does not redirect when disableRedirectOnUnauthenticated is true', async () => {
-    // Mock console.log to prevent error output in tests
-    console.log = vi.fn();
-
-    const error = new ApiError('Unauthorized');
-    error.status = 401;
-    error.statusText = 'Unauthorized';
-
-    vi.mocked(apiClient.get).mockRejectedValueOnce(error);
-
-    render(
-      <WristbandAuthProvider {...defaultProps} disableRedirectOnUnauthenticated={true}>
-        <TestConsumer />
-      </WristbandAuthProvider>
-    );
-
-    await waitFor(() => {
-      // Check that we didn't redirect
-      expect(window.location.href).toBe('https://current-page.com/path');
-      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
-      expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
-      expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      // Check that we redirected to the login URL
+      expect(window.location.href).toBe(defaultProps.loginUrl + '?return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
     });
   });
 
@@ -372,6 +362,7 @@ describe('WristbandAuthProvider', () => {
 
       return (
         <div>
+          <div data-testid="auth-error">{JSON.stringify(context?.authError)}</div>
           <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
           <div data-testid="is-loading">{String(context?.isLoading)}</div>
           <div data-testid="auth-status">{context?.authStatus}</div>
@@ -398,6 +389,7 @@ describe('WristbandAuthProvider', () => {
 
     // Wait for authentication
     await waitFor(() => {
+      expect(screen.getByTestId('auth-error').textContent).toBe('null');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
       expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
@@ -425,6 +417,7 @@ describe('WristbandAuthProvider', () => {
 
     // Verify ALL auth data was cleared
     await waitFor(() => {
+      expect(screen.getByTestId('auth-error').textContent).toBe('null');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
       expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
@@ -441,6 +434,354 @@ describe('WristbandAuthProvider', () => {
     // Verify no additional API calls were made for the failed token request
     // (clearAuthData should have cleared the cached token, and getToken should fail immediately)
     expect(apiClient.get).toHaveBeenCalledTimes(2); // Still just the original 2 calls
+  });
+
+  it('throws INVALID_SESSION_RESPONSE error when userId is missing', async () => {
+    const mockSessionData = { tenantId: 'tenant-456', metadata: { name: 'Test User' } };
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unhandledRejections: any[] = [];
+    const originalHandler = process.listeners('unhandledRejection');
+
+    process.removeAllListeners('unhandledRejection');
+    process.on('unhandledRejection', (reason) => {
+      unhandledRejections.push(reason);
+    });
+
+    render(
+      <WristbandAuthProvider {...defaultProps}>
+        <TestConsumer />
+      </WristbandAuthProvider>
+    );
+
+    // Wait for the async error to be thrown
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Restore original handlers
+    process.removeAllListeners('unhandledRejection');
+    originalHandler.forEach((handler) => process.on('unhandledRejection', handler));
+
+    // Check that the error was thrown
+    expect(unhandledRejections).toHaveLength(1);
+    expect(unhandledRejections[0].message).toBe('Session Endpoint response is missing required field: "userId"');
+    expect(unhandledRejections[0].code).toBe('INVALID_SESSION_RESPONSE');
+  });
+
+  it('throws INVALID_SESSION_RESPONSE error when userId is whitespace', async () => {
+    const mockSessionData = { tenantId: 'tenant-456', userId: '   ', metadata: { name: 'Test User' } };
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unhandledRejections: any[] = [];
+    const originalHandler = process.listeners('unhandledRejection');
+
+    process.removeAllListeners('unhandledRejection');
+    process.on('unhandledRejection', (reason) => {
+      unhandledRejections.push(reason);
+    });
+
+    render(
+      <WristbandAuthProvider {...defaultProps}>
+        <TestConsumer />
+      </WristbandAuthProvider>
+    );
+
+    // Wait for the async error to be thrown
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Restore original handlers
+    process.removeAllListeners('unhandledRejection');
+    originalHandler.forEach((handler) => process.on('unhandledRejection', handler));
+
+    // Check that the error was thrown
+    expect(unhandledRejections).toHaveLength(1);
+    expect(unhandledRejections[0].message).toBe('Session Endpoint response is missing required field: "userId"');
+    expect(unhandledRejections[0].code).toBe('INVALID_SESSION_RESPONSE');
+  });
+
+  it('throws INVALID_SESSION_RESPONSE error when tenantId is missing', async () => {
+    const mockSessionData = { userId: 'user-123', metadata: { name: 'Test User' } };
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unhandledRejections: any[] = [];
+    const originalHandler = process.listeners('unhandledRejection');
+
+    process.removeAllListeners('unhandledRejection');
+    process.on('unhandledRejection', (reason) => {
+      unhandledRejections.push(reason);
+    });
+
+    render(
+      <WristbandAuthProvider {...defaultProps}>
+        <TestConsumer />
+      </WristbandAuthProvider>
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    process.removeAllListeners('unhandledRejection');
+    originalHandler.forEach((handler) => process.on('unhandledRejection', handler));
+
+    expect(unhandledRejections).toHaveLength(1);
+    expect(unhandledRejections[0].message).toBe('Session Endpoint response is missing required field: "tenantId"');
+    expect(unhandledRejections[0].code).toBe('INVALID_SESSION_RESPONSE');
+  });
+
+  it('throws INVALID_SESSION_RESPONSE error when tenantId is whitespace', async () => {
+    const mockSessionData = { tenantId: '   ', userId: 'user-123', metadata: { name: 'Test User' } };
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unhandledRejections: any[] = [];
+    const originalHandler = process.listeners('unhandledRejection');
+
+    process.removeAllListeners('unhandledRejection');
+    process.on('unhandledRejection', (reason) => {
+      unhandledRejections.push(reason);
+    });
+
+    render(
+      <WristbandAuthProvider {...defaultProps}>
+        <TestConsumer />
+      </WristbandAuthProvider>
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    process.removeAllListeners('unhandledRejection');
+    originalHandler.forEach((handler) => process.on('unhandledRejection', handler));
+
+    expect(unhandledRejections).toHaveLength(1);
+    expect(unhandledRejections[0].message).toBe('Session Endpoint response is missing required field: "tenantId"');
+    expect(unhandledRejections[0].code).toBe('INVALID_SESSION_RESPONSE');
+  });
+
+  it('allows metadata to be undefined (valid case)', async () => {
+    const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456' }; // No metadata
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+    render(
+      <WristbandAuthProvider {...defaultProps}>
+        <TestConsumer />
+      </WristbandAuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-error').textContent).toBe('null');
+      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
+      expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      expect(screen.getByTestId('user-id').textContent).toBe('user-123');
+      expect(screen.getByTestId('tenant-id').textContent).toBe('tenant-456');
+      expect(screen.getByTestId('metadata').textContent).toBe('{}'); // Should be empty object
+    });
+  });
+
+  it('allows metadata to be null (valid case)', async () => {
+    const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456', metadata: null };
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+    render(
+      <WristbandAuthProvider {...defaultProps}>
+        <TestConsumer />
+      </WristbandAuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-error').textContent).toBe('null');
+      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
+      expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      expect(screen.getByTestId('user-id').textContent).toBe('user-123');
+      expect(screen.getByTestId('tenant-id').textContent).toBe('tenant-456');
+      expect(screen.getByTestId('metadata').textContent).toBe('{}'); // Should be empty object
+    });
+  });
+
+  it('allows metadata to be empty object (valid case)', async () => {
+    const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456', metadata: {} };
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+    render(
+      <WristbandAuthProvider {...defaultProps}>
+        <TestConsumer />
+      </WristbandAuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-error').textContent).toBe('null');
+      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
+      expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      expect(screen.getByTestId('user-id').textContent).toBe('user-123');
+      expect(screen.getByTestId('tenant-id').textContent).toBe('tenant-456');
+      expect(screen.getByTestId('metadata').textContent).toBe('{}');
+    });
+  });
+
+  describe('authError state management', () => {
+    it('exposes authError in context when disableRedirectOnUnauthenticated is true', async () => {
+      const error = new ApiError('Unauthorized');
+      error.status = 401;
+
+      vi.mocked(apiClient.get).mockRejectedValueOnce(error);
+
+      render(
+        <WristbandAuthProvider {...defaultProps} disableRedirectOnUnauthenticated={true}>
+          <TestConsumerWithAuthError />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(window.location.href).toBe('https://current-page.com/path');
+        expect(screen.getByTestId('auth-error').textContent).toBe('User is not authenticated');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('UNAUTHENTICATED');
+        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      });
+    });
+
+    it('exposes SESSION_FETCH_FAILED authError when session fetch fails with 500', async () => {
+      const error = new ApiError('Server Error');
+      error.status = 500;
+
+      vi.mocked(apiClient.get).mockRejectedValue(error); // All attempts fail
+
+      render(
+        <WristbandAuthProvider {...defaultProps} disableRedirectOnUnauthenticated={true}>
+          <TestConsumerWithAuthError />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-error').textContent).toBe('Failed to fetch session');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('SESSION_FETCH_FAILED');
+        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      });
+    });
+
+    it('exposes SESSION_FETCH_FAILED authError when session fetch fails with 403', async () => {
+      const error = new ApiError('Forbidden');
+      error.status = 403;
+
+      vi.mocked(apiClient.get).mockRejectedValueOnce(error);
+
+      render(
+        <WristbandAuthProvider {...defaultProps} disableRedirectOnUnauthenticated={true}>
+          <TestConsumerWithAuthError />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-error').textContent).toBe('Failed to fetch session');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('SESSION_FETCH_FAILED');
+        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      });
+    });
+
+    it('clears authError on successful session fetch', async () => {
+      const mockSessionData = {
+        userId: 'user-123',
+        tenantId: 'tenant-456',
+        metadata: { name: 'Test User' },
+      };
+
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+      render(
+        <WristbandAuthProvider {...defaultProps}>
+          <TestConsumerWithAuthError />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-error').textContent).toBe('no-error');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('no-code');
+        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      });
+    });
+
+    it('clears authError when clearAuthData is called', async () => {
+      const error = new ApiError('Unauthorized');
+      error.status = 401;
+
+      vi.mocked(apiClient.get).mockRejectedValueOnce(error);
+
+      const TestConsumerWithClearAuth = () => {
+        const context = useContext(WristbandAuthContext);
+
+        return (
+          <div>
+            <div data-testid="auth-error">{context?.authError?.message || 'no-error'}</div>
+            <div data-testid="auth-error-code">{context?.authError?.code || 'no-code'}</div>
+            <div data-testid="auth-status">{context?.authStatus}</div>
+            <button data-testid="clear-auth" onClick={() => context?.clearAuthData()}>
+              Clear Auth
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <WristbandAuthProvider {...defaultProps} disableRedirectOnUnauthenticated={true}>
+          <TestConsumerWithClearAuth />
+        </WristbandAuthProvider>
+      );
+
+      // Wait for error to be set
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-error').textContent).toBe('User is not authenticated');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('UNAUTHENTICATED');
+      });
+
+      // Clear auth data
+      await act(async () => screen.getByTestId('clear-auth').click());
+
+      // Verify error is cleared
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-error').textContent).toBe('no-error');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('no-code');
+        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+      });
+    });
+
+    it('does not set authError when redirect is enabled (default behavior)', async () => {
+      const error = new ApiError('Unauthorized');
+      error.status = 401;
+
+      vi.mocked(apiClient.get).mockRejectedValueOnce(error);
+
+      // Mock the resolved login URL
+      const resolvedLoginUrl = '/api/auth/login?return_url=https%3A%2F%2Fcurrent-page.com%2Fpath';
+      vi.mocked(authProviderUtils.resolveAuthProviderLoginUrl).mockReturnValue(resolvedLoginUrl);
+
+      render(
+        <WristbandAuthProvider {...defaultProps}>
+          <TestConsumerWithAuthError />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => {
+        // Should redirect instead of setting authError
+        expect(window.location.href).toBe(resolvedLoginUrl);
+      });
+    });
   });
 
   describe('getToken functionality', () => {
@@ -1076,9 +1417,276 @@ describe('WristbandAuthProvider', () => {
       // Verify retries happened - session + 2 failed tokens + 1 successful token = 4 calls
       expect(apiClient.get).toHaveBeenCalledTimes(4);
     });
-  });
 
-  // Add these test cases to your existing WristbandAuthProvider describe block:
+    it('throws INVALID_TOKEN_RESPONSE error when accessToken is missing', async () => {
+      const mockTokenResponse = { expiresAt: Date.now() + 3600000 }; // Missing accessToken
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockTokenResponse, status: 200, headers: new Headers() });
+
+      const TokenTestConsumer = () => {
+        const context = useContext(WristbandAuthContext);
+        const [error, setError] = React.useState<string>('');
+
+        const handleGetToken = async () => {
+          try {
+            await context?.getToken?.();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+            <div data-testid="error">{error}</div>
+            <button data-testid="get-token" onClick={handleGetToken}>
+              Get Token
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <WristbandAuthProvider {...defaultProps} tokenUrl="/api/auth/token">
+          <TokenTestConsumer />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      await act(async () => screen.getByTestId('get-token').click());
+      await waitFor(() => {
+        expect(screen.getByTestId('error').textContent).toBe(
+          'Token Endpoint response is missing required field: "accessToken"'
+        );
+      });
+    });
+
+    it('throws INVALID_TOKEN_RESPONSE error when accessToken is empty string', async () => {
+      const mockTokenResponse = { accessToken: '', expiresAt: Date.now() + 3600000 };
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockTokenResponse, status: 200, headers: new Headers() });
+
+      const TokenTestConsumer = () => {
+        const context = useContext(WristbandAuthContext);
+        const [error, setError] = React.useState<string>('');
+
+        const handleGetToken = async () => {
+          try {
+            await context?.getToken?.();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+            <div data-testid="error">{error}</div>
+            <button data-testid="get-token" onClick={handleGetToken}>
+              Get Token
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <WristbandAuthProvider {...defaultProps} tokenUrl="/api/auth/token">
+          <TokenTestConsumer />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      await act(async () => screen.getByTestId('get-token').click());
+      await waitFor(() => {
+        expect(screen.getByTestId('error').textContent).toBe(
+          'Token Endpoint response is missing required field: "accessToken"'
+        );
+      });
+    });
+
+    it('throws INVALID_TOKEN_RESPONSE error when expiresAt is undefined', async () => {
+      const mockTokenResponse = { accessToken: 'valid-token-123' }; // Missing expiresAt
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockTokenResponse, status: 200, headers: new Headers() });
+
+      const TokenTestConsumer = () => {
+        const context = useContext(WristbandAuthContext);
+        const [error, setError] = React.useState<string>('');
+
+        const handleGetToken = async () => {
+          try {
+            await context?.getToken?.();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+            <div data-testid="error">{error}</div>
+            <button data-testid="get-token" onClick={handleGetToken}>
+              Get Token
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <WristbandAuthProvider {...defaultProps} tokenUrl="/api/auth/token">
+          <TokenTestConsumer />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      await act(async () => screen.getByTestId('get-token').click());
+      await waitFor(() => {
+        expect(screen.getByTestId('error').textContent).toBe(
+          'Token Endpoint response is missing required field: "expiresAt"'
+        );
+      });
+    });
+
+    it('throws INVALID_TOKEN_RESPONSE error when expiresAt is null', async () => {
+      const mockTokenResponse = { accessToken: 'valid-token-123', expiresAt: null };
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockTokenResponse, status: 200, headers: new Headers() });
+
+      const TokenTestConsumer = () => {
+        const context = useContext(WristbandAuthContext);
+        const [error, setError] = React.useState<string>('');
+
+        const handleGetToken = async () => {
+          try {
+            await context?.getToken?.();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+            <div data-testid="error">{error}</div>
+            <button data-testid="get-token" onClick={handleGetToken}>
+              Get Token
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <WristbandAuthProvider {...defaultProps} tokenUrl="/api/auth/token">
+          <TokenTestConsumer />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      await act(async () => screen.getByTestId('get-token').click());
+      await waitFor(() => {
+        expect(screen.getByTestId('error').textContent).toBe(
+          'Token Endpoint response is missing required field: "expiresAt"'
+        );
+      });
+    });
+
+    it('throws INVALID_TOKEN_RESPONSE error when expiresAt is negative', async () => {
+      const mockTokenResponse = { accessToken: 'valid-token-123', expiresAt: -1 };
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockTokenResponse, status: 200, headers: new Headers() });
+
+      const TokenTestConsumer = () => {
+        const context = useContext(WristbandAuthContext);
+        const [error, setError] = React.useState<string>('');
+
+        const handleGetToken = async () => {
+          try {
+            await context?.getToken?.();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+            <div data-testid="error">{error}</div>
+            <button data-testid="get-token" onClick={handleGetToken}>
+              Get Token
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <WristbandAuthProvider {...defaultProps} tokenUrl="/api/auth/token">
+          <TokenTestConsumer />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      await act(async () => screen.getByTestId('get-token').click());
+      await waitFor(() => {
+        expect(screen.getByTestId('error').textContent).toBe(
+          'Token Endpoint response is missing required field: "expiresAt"'
+        );
+      });
+    });
+
+    it('allows expiresAt to be 0 (valid case)', async () => {
+      const mockTokenResponse = { accessToken: 'valid-token-123', expiresAt: 0 };
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockTokenResponse, status: 200, headers: new Headers() });
+
+      const TokenTestConsumer = () => {
+        const context = useContext(WristbandAuthContext);
+        const [token, setToken] = React.useState<string>('');
+
+        const handleGetToken = async () => {
+          try {
+            const result = await context?.getToken?.();
+            setToken(result || '');
+          } catch (err) {
+            setToken('ERROR');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+            <div data-testid="token">{token}</div>
+            <button data-testid="get-token" onClick={handleGetToken}>
+              Get Token
+            </button>
+          </div>
+        );
+      };
+
+      render(
+        <WristbandAuthProvider {...defaultProps} tokenUrl="/api/auth/token">
+          <TokenTestConsumer />
+        </WristbandAuthProvider>
+      );
+
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      await act(async () => screen.getByTestId('get-token').click());
+      await waitFor(() => {
+        expect(screen.getByTestId('token').textContent).toBe('valid-token-123');
+      });
+    });
+  });
 
   describe('fetchSession retry logic', () => {
     it('retries on 5xx server errors and succeeds on second attempt', async () => {
@@ -1119,7 +1727,7 @@ describe('WristbandAuthProvider', () => {
       expect(apiClient.get).toHaveBeenCalledWith(defaultProps.sessionUrl, requestOptions);
     });
 
-    it('retries 3 times on 5xx errors then redirects to logout', async () => {
+    it('retries 3 times on 5xx errors then redirects to login', async () => {
       // Mock console.log to prevent error output in tests
       console.log = vi.fn();
 
@@ -1136,8 +1744,8 @@ describe('WristbandAuthProvider', () => {
       );
 
       await waitFor(() => {
-        // Should redirect to logout URL after all retries fail
-        expect(window.location.href).toBe(defaultProps.logoutUrl);
+        // Should redirect to login URL after all retries fail
+        expect(window.location.href).toBe(defaultProps.loginUrl + '?return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
       });
 
       // Verify all 3 retry attempts were made
@@ -1172,7 +1780,7 @@ describe('WristbandAuthProvider', () => {
       expect(apiClient.get).toHaveBeenCalledTimes(1);
     });
 
-    it('does not retry on 4xx client errors (403) and redirects to logout', async () => {
+    it('does not retry on 4xx client errors (403) and redirects to login', async () => {
       // Mock console.log to prevent error output in tests
       console.log = vi.fn();
 
@@ -1188,8 +1796,8 @@ describe('WristbandAuthProvider', () => {
       );
 
       await waitFor(() => {
-        // Should redirect to logout URL immediately (no retries)
-        expect(window.location.href).toBe(defaultProps.logoutUrl);
+        // Should redirect to login URL immediately (no retries)
+        expect(window.location.href).toBe(defaultProps.loginUrl + '?return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
       });
 
       // Verify NO retries happened - only 1 session attempt
@@ -1231,7 +1839,7 @@ describe('WristbandAuthProvider', () => {
       expect(apiClient.get).toHaveBeenCalledTimes(3);
     });
 
-    it('retries 3 times on network errors then redirects to logout', async () => {
+    it('retries 3 times on network errors then redirects to login', async () => {
       // Mock console.log to prevent error output in tests
       console.log = vi.fn();
 
@@ -1247,8 +1855,8 @@ describe('WristbandAuthProvider', () => {
       );
 
       await waitFor(() => {
-        // Should redirect to logout URL after all retries fail
-        expect(window.location.href).toBe(defaultProps.logoutUrl);
+        // Should redirect to login URL after all retries fail
+        expect(window.location.href).toBe(defaultProps.loginUrl + '?return_url=https%3A%2F%2Fcurrent-page.com%2Fpath');
       });
 
       // Verify all 3 retry attempts were made
