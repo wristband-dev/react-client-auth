@@ -124,14 +124,14 @@ export function redirectToLogout(logoutUrl: string, config: LogoutRedirectConfig
     throw new WristbandError('INVALID_LOGOUT_URL', `Redirect To Logout: "${logoutUrl}" is not a valid logout URL`);
   }
 
-  for (const key of reservedLogoutQueryKeys) {
+  reservedLogoutQueryKeys.forEach((key) => {
     if (resolvedUrl.searchParams.has(key)) {
       throw new WristbandError(
         'INVALID_LOGOUT_URL',
         `Redirect To Logout: logoutUrl must not include reserved query param: "${key}"`
       );
     }
-  }
+  });
 
   const queryParams: URLSearchParams = new URLSearchParams({
     ...(config.tenantName ? { tenant_name: config.tenantName } : {}),
