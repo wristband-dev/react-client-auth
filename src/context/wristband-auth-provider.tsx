@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { WristbandAuthContext } from './wristband-auth-context';
-import {
-  AuthStatus,
-  IWristbandAuthProviderProps,
-  SessionResponse,
-  TokenResponse,
-  WristbandErrorCode,
-} from '../types/auth-provider-types';
+import { AuthStatus, IWristbandAuthProviderProps, SessionResponse, TokenResponse } from '../types/auth-provider-types';
 import apiClient from '../api/api-client';
 import {
   delay,
@@ -117,11 +111,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   const tokenRequestRef = useRef<Promise<string> | null>(null);
 
   // Convenience enum for users who don't want to check both isAuthenticated and isLoading
-  const authStatus: AuthStatus = isLoading
-    ? AuthStatus.LOADING
-    : isAuthenticated
-    ? AuthStatus.AUTHENTICATED
-    : AuthStatus.UNAUTHENTICATED;
+  const authStatus: AuthStatus = isLoading ? 'LOADING' : isAuthenticated ? 'AUTHENTICATED' : 'UNAUTHENTICATED';
 
   const { resolvedLoginUrl, validatedSessionUrl, validatedTokenUrl } = useMemo(() => {
     // All validations happen first before any useEffect
@@ -171,11 +161,11 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
    */
   const getToken = useCallback(async (): Promise<string> => {
     if (!validatedTokenUrl || !validatedTokenUrl.trim()) {
-      throw new WristbandError(WristbandErrorCode.INVALID_TOKEN_URL, 'Token URL not configured');
+      throw new WristbandError('INVALID_TOKEN_URL', 'Token URL not configured');
     }
 
     if (!isAuthenticated) {
-      throw new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated');
+      throw new WristbandError('UNAUTHENTICATED', 'User is not authenticated');
     }
 
     // Check if we have a valid cached token (with 30 second buffer)
@@ -200,14 +190,14 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
 
             if (!newToken || !newToken.trim()) {
               throw new WristbandError(
-                WristbandErrorCode.INVALID_TOKEN_RESPONSE,
+                'INVALID_TOKEN_RESPONSE',
                 'Token Endpoint response is missing required field: "accessToken"'
               );
             }
 
             if (expiresAt === undefined || expiresAt === null || expiresAt < 0) {
               throw new WristbandError(
-                WristbandErrorCode.INVALID_TOKEN_RESPONSE,
+                'INVALID_TOKEN_RESPONSE',
                 'Token Endpoint response is missing required field: "expiresAt"'
               );
             }
@@ -227,12 +217,12 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
             if (isUnauthorizedError(error)) {
               setAccessToken('');
               setAccessTokenExpiresAt(0);
-              throw new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'Token request unauthorized', error);
+              throw new WristbandError('UNAUTHENTICATED', 'Token request unauthorized', error);
             }
 
             // If it's any other 4xx error, bail early (don't retry client errors).
             if (is4xxError(error)) {
-              throw new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Failed to fetch token', error);
+              throw new WristbandError('TOKEN_FETCH_FAILED', 'Failed to fetch token', error);
             }
 
             // If this is the last attempt, throw the last error
@@ -246,7 +236,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
         }
 
         // All attempts failed, so throw an error
-        throw new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Failed to fetch token', lastError);
+        throw new WristbandError('TOKEN_FETCH_FAILED', 'Failed to fetch token', lastError);
       } finally {
         // Clear the in-flight request
         tokenRequestRef.current = null;
@@ -277,14 +267,14 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
 
           if (!userId || !userId.trim()) {
             throw new WristbandError(
-              WristbandErrorCode.INVALID_SESSION_RESPONSE,
+              'INVALID_SESSION_RESPONSE',
               'Session Endpoint response is missing required field: "userId"'
             );
           }
 
           if (!tenantId || !tenantId.trim()) {
             throw new WristbandError(
-              WristbandErrorCode.INVALID_SESSION_RESPONSE,
+              'INVALID_SESSION_RESPONSE',
               'Session Endpoint response is missing required field: "tenantId"'
             );
           }
@@ -315,19 +305,19 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
           }
 
           if (isUnauthorizedError(error)) {
-            lastError = new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated', error);
+            lastError = new WristbandError('UNAUTHENTICATED', 'User is not authenticated', error);
             break;
           }
 
           // If it's a non-401 4xx error, bail early (don't retry client errors)
           if (is4xxError(error)) {
-            lastError = new WristbandError(WristbandErrorCode.SESSION_FETCH_FAILED, 'Failed to fetch session', error);
+            lastError = new WristbandError('SESSION_FETCH_FAILED', 'Failed to fetch session', error);
             break;
           }
 
           // If this is the last attempt, don't delay
           if (attempt === MAX_API_ATTEMPTS) {
-            lastError = new WristbandError(WristbandErrorCode.SESSION_FETCH_FAILED, 'Failed to fetch session', error);
+            lastError = new WristbandError('SESSION_FETCH_FAILED', 'Failed to fetch session', error);
             break;
           }
 

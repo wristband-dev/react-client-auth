@@ -5,7 +5,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { WristbandAuthProvider } from '../../src/context/wristband-auth-provider';
 import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
 import apiClient from '../../src/api/api-client';
-import { AuthStatus } from '../../src/types/auth-provider-types';
 import * as authProviderUtils from '../../src/utils/auth-provider-utils';
 import { ApiError } from '../../src/error';
 
@@ -79,7 +78,7 @@ describe('WristbandAuthProvider', () => {
   // Store original console methods
   const originalConsoleLog = console.log;
   const originalConsoleError = console.error;
-  let restoreLocation;
+  let restoreLocation: () => void;
 
   beforeEach(() => {
     // Mock window.location
@@ -140,7 +139,7 @@ describe('WristbandAuthProvider', () => {
     );
 
     expect(screen.getByTestId('auth-error').textContent).toBe('null');
-    expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.LOADING.toString());
+    expect(screen.getByTestId('auth-status').textContent).toBe('LOADING');
     expect(screen.getByTestId('is-loading').textContent).toBe('true');
     expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
   });
@@ -166,7 +165,7 @@ describe('WristbandAuthProvider', () => {
     // Wait for session to be fetched
     await waitFor(() => {
       expect(screen.getByTestId('auth-error').textContent).toBe('null');
-      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
       expect(screen.getByTestId('user-id').textContent).toBe('user-123');
@@ -392,7 +391,7 @@ describe('WristbandAuthProvider', () => {
       expect(screen.getByTestId('auth-error').textContent).toBe('null');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
-      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
       expect(screen.getByTestId('user-id').textContent).toBe('user-123');
       expect(screen.getByTestId('tenant-id').textContent).toBe('tenant-456');
       expect(JSON.parse(screen.getByTestId('metadata').textContent || '{}')).toEqual(mockSessionData.metadata);
@@ -420,7 +419,7 @@ describe('WristbandAuthProvider', () => {
       expect(screen.getByTestId('auth-error').textContent).toBe('null');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
-      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+      expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
       expect(screen.getByTestId('user-id').textContent).toBe('no-user-id');
       expect(screen.getByTestId('tenant-id').textContent).toBe('no-tenant-id');
       expect(screen.getByTestId('metadata').textContent).toBe('{}');
@@ -575,7 +574,7 @@ describe('WristbandAuthProvider', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('auth-error').textContent).toBe('null');
-      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
       expect(screen.getByTestId('user-id').textContent).toBe('user-123');
@@ -597,7 +596,7 @@ describe('WristbandAuthProvider', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('auth-error').textContent).toBe('null');
-      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
       expect(screen.getByTestId('user-id').textContent).toBe('user-123');
@@ -619,7 +618,7 @@ describe('WristbandAuthProvider', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('auth-error').textContent).toBe('null');
-      expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+      expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
       expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
       expect(screen.getByTestId('is-loading').textContent).toBe('false');
       expect(screen.getByTestId('user-id').textContent).toBe('user-123');
@@ -645,7 +644,7 @@ describe('WristbandAuthProvider', () => {
         expect(window.location.href).toBe('https://current-page.com/path');
         expect(screen.getByTestId('auth-error').textContent).toBe('User is not authenticated');
         expect(screen.getByTestId('auth-error-code').textContent).toBe('UNAUTHENTICATED');
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
       });
@@ -666,7 +665,7 @@ describe('WristbandAuthProvider', () => {
       await waitFor(() => {
         expect(screen.getByTestId('auth-error').textContent).toBe('Failed to fetch session');
         expect(screen.getByTestId('auth-error-code').textContent).toBe('SESSION_FETCH_FAILED');
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
       });
@@ -687,7 +686,7 @@ describe('WristbandAuthProvider', () => {
       await waitFor(() => {
         expect(screen.getByTestId('auth-error').textContent).toBe('Failed to fetch session');
         expect(screen.getByTestId('auth-error-code').textContent).toBe('SESSION_FETCH_FAILED');
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
       });
@@ -711,7 +710,7 @@ describe('WristbandAuthProvider', () => {
       await waitFor(() => {
         expect(screen.getByTestId('auth-error').textContent).toBe('no-error');
         expect(screen.getByTestId('auth-error-code').textContent).toBe('no-code');
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
       });
@@ -757,7 +756,7 @@ describe('WristbandAuthProvider', () => {
       await waitFor(() => {
         expect(screen.getByTestId('auth-error').textContent).toBe('no-error');
         expect(screen.getByTestId('auth-error-code').textContent).toBe('no-code');
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
       });
     });
 
@@ -1715,7 +1714,7 @@ describe('WristbandAuthProvider', () => {
 
       // Should eventually succeed and become authenticated
       await waitFor(() => {
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
         expect(screen.getByTestId('user-id').textContent).toBe('user-123');
@@ -1830,7 +1829,7 @@ describe('WristbandAuthProvider', () => {
 
       // Should eventually succeed after retries
       await waitFor(() => {
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
       });
@@ -1881,7 +1880,7 @@ describe('WristbandAuthProvider', () => {
       await waitFor(() => {
         // Should not redirect, should set to unauthenticated state
         expect(window.location.href).toBe('https://current-page.com/path');
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
       });
@@ -1909,7 +1908,7 @@ describe('WristbandAuthProvider', () => {
       await waitFor(() => {
         // Should not redirect, should set to unauthenticated state
         expect(window.location.href).toBe('https://current-page.com/path');
-        expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.UNAUTHENTICATED.toString());
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
         expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
         expect(screen.getByTestId('is-loading').textContent).toBe('false');
       });

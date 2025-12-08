@@ -22,9 +22,9 @@ export interface LoginRedirectConfig {
    */
   returnUrl?: string;
   /**
-   * Optional tenant domain name for directing users to the correct Tenant Login Page.
+   * Optional tenant name for directing users to the correct Tenant Login Page.
    *
-   * When provided, this value is sent as the "tenant_domain" query parameter to your backend server's Login Ednpoint,
+   * When provided, this value is sent as the "tenant_name" query parameter to your backend server's Login Ednpoint,
    * enabling automatic tenant routing during login.
    *
    * This parameter is primarily useful when:
@@ -33,7 +33,7 @@ export interface LoginRedirectConfig {
    *
    * @example "acme-corp" // Directs to Acme Corporation's Tenant Login Page
    */
-  tenantDomain?: string;
+  tenantName?: string;
   /**
    * Optional tenant custom domain for directing users to the correct Tenant Login Page.
    *
@@ -55,9 +55,9 @@ export interface LoginRedirectConfig {
  */
 export interface LogoutRedirectConfig {
   /**
-   * Optional tenant domain name for directing users to the correct Tenant Login Page.
+   * Optional tenant name for directing users to the correct Tenant Login Page.
    *
-   * When provided, this value is sent as the "tenant_domain" query parameter to your backend server's Logout Ednpoint,
+   * When provided, this value is sent as the "tenant_name" query parameter to your backend server's Logout Ednpoint,
    * enabling automatic tenant routing during logout.
    *
    * This parameter is primarily useful when:
@@ -66,7 +66,7 @@ export interface LogoutRedirectConfig {
    *
    * @example "acme-corp" // Directs to Acme Corporation's Tenant Login Page
    */
-  tenantDomain?: string;
+  tenantName?: string;
 
   /**
    * Optional tenant custom domain for directing users to the correct Tenant Login Page.

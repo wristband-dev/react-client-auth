@@ -1,5 +1,4 @@
 import { ApiError, WristbandError } from '../error';
-import { WristbandErrorCode } from '../types/auth-provider-types';
 
 /**
  * Resolves and properly formats a login URL for the Wristband Auth Provider.
@@ -24,7 +23,7 @@ import { WristbandErrorCode } from '../types/auth-provider-types';
  */
 export function resolveAuthProviderLoginUrl(loginUrl: string): string {
   if (!loginUrl || !loginUrl.trim()) {
-    throw new WristbandError(WristbandErrorCode.INVALID_LOGIN_URL, 'WristbandAuthProvider: [loginUrl] is required');
+    throw new WristbandError('INVALID_LOGIN_URL', 'WristbandAuthProvider: [loginUrl] is required');
   }
 
   // For frameworks like NextJS, need to ensure this doesn't break in server-side environments.
@@ -36,10 +35,7 @@ export function resolveAuthProviderLoginUrl(loginUrl: string): string {
   try {
     resolvedUrl = new URL(loginUrl, window.location.origin);
   } catch {
-    throw new WristbandError(
-      WristbandErrorCode.INVALID_LOGIN_URL,
-      `WristbandAuthProvider: [${loginUrl}] is not a valid loginUrl`
-    );
+    throw new WristbandError('INVALID_LOGIN_URL', `WristbandAuthProvider: [${loginUrl}] is not a valid loginUrl`);
   }
 
   // If return_url is not present, add it.
@@ -71,7 +67,7 @@ export function resolveAuthProviderLoginUrl(loginUrl: string): string {
  */
 export function validateAuthProviderSessionUrl(sessionUrl: string): void {
   if (!sessionUrl || !sessionUrl.trim()) {
-    throw new WristbandError(WristbandErrorCode.INVALID_SESSION_URL, 'WristbandAuthProvider: [sessionUrl] is required');
+    throw new WristbandError('INVALID_SESSION_URL', 'WristbandAuthProvider: [sessionUrl] is required');
   }
 
   // For frameworks like NextJS, need to ensure this doesn't break in server-side environments.
@@ -80,7 +76,7 @@ export function validateAuthProviderSessionUrl(sessionUrl: string): void {
       new URL(sessionUrl, window.location.origin);
     } catch {
       throw new WristbandError(
-        WristbandErrorCode.INVALID_SESSION_URL,
+        'INVALID_SESSION_URL',
         `WristbandAuthProvider: [${sessionUrl}] is not a valid sessionUrl`
       );
     }
@@ -112,10 +108,7 @@ export function validateAuthProviderTokenUrl(tokenUrl?: string): void {
     try {
       new URL(tokenUrl, window.location.origin);
     } catch {
-      throw new WristbandError(
-        WristbandErrorCode.INVALID_TOKEN_URL,
-        `WristbandAuthProvider: [${tokenUrl}] is not a valid tokenUrl`
-      );
+      throw new WristbandError('INVALID_TOKEN_URL', `WristbandAuthProvider: [${tokenUrl}] is not a valid tokenUrl`);
     }
   }
 }

@@ -1,26 +1,18 @@
 import { describe, it, expect } from 'vitest';
 
 import {
-  AuthStatus,
   IWristbandAuthContext,
   IWristbandAuthProviderProps,
   SessionResponse,
 } from '../../src/types/auth-provider-types';
 
 describe('Auth Provider Types', () => {
-  // Test AuthStatus enum values
-  it('should have the correct AuthStatus enum values', () => {
-    expect(AuthStatus.LOADING).toBe('LOADING');
-    expect(AuthStatus.AUTHENTICATED).toBe('AUTHENTICATED');
-    expect(AuthStatus.UNAUTHENTICATED).toBe('UNAUTHENTICATED');
-  });
-
   // Test that interfaces exist and can be used
   it('should allow creating objects that match the auth context interface', () => {
     // Create a valid context object
     const contextValue: IWristbandAuthContext = {
       authError: null,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       isAuthenticated: true,
       isLoading: false,
       metadata: {},
@@ -34,7 +26,7 @@ describe('Auth Provider Types', () => {
 
     expect(contextValue).toBeDefined();
     expect(contextValue.authError).toBeNull();
-    expect(contextValue.authStatus).toBe(AuthStatus.AUTHENTICATED);
+    expect(contextValue.authStatus).toBe('AUTHENTICATED');
     expect(contextValue.isAuthenticated).toBe(true);
     expect(contextValue.isLoading).toBe(false);
     expect(contextValue.tenantId).toBe('tenant-123');
@@ -96,7 +88,7 @@ describe('Auth Provider Types', () => {
 
     const typedContext: IWristbandAuthContext<UserMetadata> = {
       authError: null,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       isAuthenticated: true,
       isLoading: false,
       metadata: { name: 'Test User', role: 'admin' },

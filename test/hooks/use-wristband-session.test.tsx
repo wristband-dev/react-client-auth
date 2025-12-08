@@ -4,7 +4,7 @@ import { render, screen, renderHook, act } from '@testing-library/react';
 
 import { useWristbandSession } from '../../src/hooks/use-wristband-session';
 import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext } from '../../src/types/auth-provider-types';
+import { IWristbandAuthContext } from '../../src/types/auth-provider-types';
 
 // Type definition for a strongly-typed session example
 interface UserSessionData {
@@ -26,7 +26,7 @@ describe('useWristbandSession', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -89,7 +89,7 @@ describe('useWristbandSession', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -125,7 +125,7 @@ describe('useWristbandSession', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -178,7 +178,7 @@ describe('useWristbandSession', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -230,7 +230,7 @@ describe('useWristbandSession', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
