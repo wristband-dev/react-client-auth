@@ -20,13 +20,13 @@ describe('Utility Types', () => {
     const fullConfig: LoginRedirectConfig = {
       loginHint: 'admin@example.com',
       returnUrl: '/admin-dashboard',
-      tenantDomain: 'acme-corp',
+      tenantName: 'acme-corp',
       tenantCustomDomain: 'auth.acme.com',
     };
 
     expect(fullConfig.loginHint).toBe('admin@example.com');
     expect(fullConfig.returnUrl).toBe('/admin-dashboard');
-    expect(fullConfig.tenantDomain).toBe('acme-corp');
+    expect(fullConfig.tenantName).toBe('acme-corp');
     expect(fullConfig.tenantCustomDomain).toBe('auth.acme.com');
   });
 
@@ -35,11 +35,11 @@ describe('Utility Types', () => {
     const emptyConfig: LogoutRedirectConfig = {};
     expect(emptyConfig).toBeDefined();
 
-    // Partial config with tenantDomain only
+    // Partial config with tenantName only
     const domainOnlyConfig: LogoutRedirectConfig = {
-      tenantDomain: 'acme-corp',
+      tenantName: 'acme-corp',
     };
-    expect(domainOnlyConfig.tenantDomain).toBe('acme-corp');
+    expect(domainOnlyConfig.tenantName).toBe('acme-corp');
     expect(domainOnlyConfig.tenantCustomDomain).toBeUndefined();
 
     // Partial config with tenantCustomDomain only
@@ -47,15 +47,15 @@ describe('Utility Types', () => {
       tenantCustomDomain: 'auth.acme.com',
     };
     expect(customDomainOnlyConfig.tenantCustomDomain).toBe('auth.acme.com');
-    expect(customDomainOnlyConfig.tenantDomain).toBeUndefined();
+    expect(customDomainOnlyConfig.tenantName).toBeUndefined();
 
     // Complete config with all properties
     const fullConfig: LogoutRedirectConfig = {
-      tenantDomain: 'acme-corp',
+      tenantName: 'acme-corp',
       tenantCustomDomain: 'auth.acme.com',
     };
 
-    expect(fullConfig.tenantDomain).toBe('acme-corp');
+    expect(fullConfig.tenantName).toBe('acme-corp');
     expect(fullConfig.tenantCustomDomain).toBe('auth.acme.com');
   });
 
@@ -63,23 +63,23 @@ describe('Utility Types', () => {
     const config: LoginRedirectConfig = {
       loginHint: 'user@example.com',
       returnUrl: '/dashboard',
-      tenantDomain: 'acme-corp',
+      tenantName: 'acme-corp',
       tenantCustomDomain: 'auth.acme.com',
     };
 
     expect(typeof config.loginHint).toBe('string');
     expect(typeof config.returnUrl).toBe('string');
-    expect(typeof config.tenantDomain).toBe('string');
+    expect(typeof config.tenantName).toBe('string');
     expect(typeof config.tenantCustomDomain).toBe('string');
   });
 
   it('should enforce property types for LogoutRedirectConfig', () => {
     const config: LogoutRedirectConfig = {
-      tenantDomain: 'acme-corp',
+      tenantName: 'acme-corp',
       tenantCustomDomain: 'auth.acme.com',
     };
 
-    expect(typeof config.tenantDomain).toBe('string');
+    expect(typeof config.tenantName).toBe('string');
     expect(typeof config.tenantCustomDomain).toBe('string');
   });
 });

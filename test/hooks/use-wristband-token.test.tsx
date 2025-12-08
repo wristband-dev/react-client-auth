@@ -5,7 +5,7 @@ import { fail } from 'assert';
 
 import { useWristbandToken } from '../../src/hooks/use-wristband-token';
 import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext, WristbandErrorCode } from '../../src/types/auth-provider-types';
+import { IWristbandAuthContext } from '../../src/types/auth-provider-types';
 import { WristbandError } from '../../src/error';
 
 describe('useWristbandToken', () => {
@@ -21,7 +21,7 @@ describe('useWristbandToken', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -54,7 +54,7 @@ describe('useWristbandToken', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -83,15 +83,13 @@ describe('useWristbandToken', () => {
   });
 
   it('should throw WristbandError when user is not authenticated', async () => {
-    const mockGetToken = vi
-      .fn()
-      .mockRejectedValue(new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated'));
+    const mockGetToken = vi.fn().mockRejectedValue(new WristbandError('UNAUTHENTICATED', 'User is not authenticated'));
     const mockClearToken = vi.fn();
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: false,
       isLoading: false,
-      authStatus: AuthStatus.UNAUTHENTICATED,
+      authStatus: 'UNAUTHENTICATED',
       authError: null,
       userId: '',
       tenantId: '',
@@ -125,15 +123,13 @@ describe('useWristbandToken', () => {
   });
 
   it('should throw WristbandError when tokenUrl is not configured', async () => {
-    const mockGetToken = vi
-      .fn()
-      .mockRejectedValue(new WristbandError(WristbandErrorCode.INVALID_TOKEN_URL, 'Token URL not configured'));
+    const mockGetToken = vi.fn().mockRejectedValue(new WristbandError('INVALID_TOKEN_URL', 'Token URL not configured'));
     const mockClearToken = vi.fn();
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -170,18 +166,14 @@ describe('useWristbandToken', () => {
     const mockGetToken = vi
       .fn()
       .mockRejectedValue(
-        new WristbandError(
-          WristbandErrorCode.UNAUTHENTICATED,
-          'Token request unauthorized',
-          new Error('401 Unauthorized')
-        )
+        new WristbandError('UNAUTHENTICATED', 'Token request unauthorized', new Error('401 Unauthorized'))
       );
     const mockClearToken = vi.fn();
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -217,15 +209,13 @@ describe('useWristbandToken', () => {
   it('should throw WristbandError for general token fetch failures', async () => {
     const mockGetToken = vi
       .fn()
-      .mockRejectedValue(
-        new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Failed to fetch token', new Error('Network error'))
-      );
+      .mockRejectedValue(new WristbandError('TOKEN_FETCH_FAILED', 'Failed to fetch token', new Error('Network error')));
     const mockClearToken = vi.fn();
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -266,7 +256,7 @@ describe('useWristbandToken', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -301,7 +291,7 @@ describe('useWristbandToken', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -343,7 +333,7 @@ describe('useWristbandToken', () => {
     const mockGetToken = vi
       .fn()
       .mockResolvedValueOnce('test-token-456')
-      .mockRejectedValueOnce(new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'User is not authenticated'));
+      .mockRejectedValueOnce(new WristbandError('UNAUTHENTICATED', 'User is not authenticated'));
     const mockClearToken = vi.fn();
 
     // Create a test component that uses the hook
@@ -390,7 +380,7 @@ describe('useWristbandToken', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',

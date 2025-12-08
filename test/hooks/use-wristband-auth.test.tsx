@@ -4,7 +4,7 @@ import { render, screen, renderHook } from '@testing-library/react';
 
 import { useWristbandAuth } from '../../src/hooks/use-wristband-auth';
 import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
-import { AuthStatus, IWristbandAuthContext, WristbandErrorCode } from '../../src/types/auth-provider-types';
+import { IWristbandAuthContext } from '../../src/types/auth-provider-types';
 import { WristbandError } from '../../src/error';
 
 describe('useWristbandAuth', () => {
@@ -19,7 +19,7 @@ describe('useWristbandAuth', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -43,7 +43,7 @@ describe('useWristbandAuth', () => {
       authError: null,
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       clearAuthData: mockClearAuthData,
     });
 
@@ -59,7 +59,7 @@ describe('useWristbandAuth', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -119,7 +119,7 @@ describe('useWristbandAuth', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -138,7 +138,7 @@ describe('useWristbandAuth', () => {
     );
 
     // The component should render with the correct values
-    expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+    expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
     expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
     expect(screen.getByTestId('is-loading').textContent).toBe('false');
 
@@ -156,7 +156,7 @@ describe('useWristbandAuth', () => {
         contextValue: {
           isAuthenticated: false,
           isLoading: true,
-          authStatus: AuthStatus.LOADING,
+          authStatus: 'LOADING',
           authError: null,
           userId: '',
           tenantId: '',
@@ -170,7 +170,7 @@ describe('useWristbandAuth', () => {
           authError: null,
           isAuthenticated: false,
           isLoading: true,
-          authStatus: AuthStatus.LOADING,
+          authStatus: 'LOADING',
           clearAuthData: expect.any(Function),
         },
       },
@@ -178,7 +178,7 @@ describe('useWristbandAuth', () => {
         contextValue: {
           isAuthenticated: true,
           isLoading: false,
-          authStatus: AuthStatus.AUTHENTICATED,
+          authStatus: 'AUTHENTICATED',
           authError: null,
           userId: 'user-123',
           tenantId: 'tenant-456',
@@ -192,7 +192,7 @@ describe('useWristbandAuth', () => {
           authError: null,
           isAuthenticated: true,
           isLoading: false,
-          authStatus: AuthStatus.AUTHENTICATED,
+          authStatus: 'AUTHENTICATED',
           clearAuthData: expect.any(Function),
         },
       },
@@ -200,7 +200,7 @@ describe('useWristbandAuth', () => {
         contextValue: {
           isAuthenticated: false,
           isLoading: false,
-          authStatus: AuthStatus.UNAUTHENTICATED,
+          authStatus: 'UNAUTHENTICATED',
           authError: null,
           userId: '',
           tenantId: '',
@@ -214,7 +214,7 @@ describe('useWristbandAuth', () => {
           authError: null,
           isAuthenticated: false,
           isLoading: false,
-          authStatus: AuthStatus.UNAUTHENTICATED,
+          authStatus: 'UNAUTHENTICATED',
           clearAuthData: expect.any(Function),
         },
       },
@@ -233,12 +233,12 @@ describe('useWristbandAuth', () => {
   });
 
   it('should return authError when present in context', () => {
-    const mockError = new WristbandError(WristbandErrorCode.SESSION_FETCH_FAILED, 'Session failed');
+    const mockError = new WristbandError('SESSION_FETCH_FAILED', 'Session failed');
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: false,
       isLoading: false,
-      authStatus: AuthStatus.UNAUTHENTICATED,
+      authStatus: 'UNAUTHENTICATED',
       authError: mockError,
       userId: '',
       tenantId: '',
@@ -256,7 +256,7 @@ describe('useWristbandAuth', () => {
     const { result } = renderHook(() => useWristbandAuth(), { wrapper });
 
     expect(result.current.authError).toBe(mockError);
-    expect(result.current.authError?.code).toBe(WristbandErrorCode.SESSION_FETCH_FAILED);
+    expect(result.current.authError?.code).toBe('SESSION_FETCH_FAILED');
     expect(result.current.authError?.message).toBe('Session failed');
   });
 
@@ -264,7 +264,7 @@ describe('useWristbandAuth', () => {
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'user-123',
       tenantId: 'tenant-456',
@@ -292,16 +292,16 @@ describe('useWristbandAuth', () => {
 
   it('should handle different types of authError', () => {
     const testCases = [
-      new WristbandError(WristbandErrorCode.INVALID_SESSION_RESPONSE, 'Invalid session'),
-      new WristbandError(WristbandErrorCode.TOKEN_FETCH_FAILED, 'Token failed'),
-      new WristbandError(WristbandErrorCode.UNAUTHENTICATED, 'Not authenticated'),
+      new WristbandError('INVALID_SESSION_RESPONSE', 'Invalid session'),
+      new WristbandError('TOKEN_FETCH_FAILED', 'Token failed'),
+      new WristbandError('UNAUTHENTICATED', 'Not authenticated'),
     ];
 
     testCases.forEach((error) => {
       const contextValue: IWristbandAuthContext = {
         isAuthenticated: false,
         isLoading: false,
-        authStatus: AuthStatus.UNAUTHENTICATED,
+        authStatus: 'UNAUTHENTICATED',
         authError: error,
         userId: '',
         tenantId: '',

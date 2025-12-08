@@ -41,10 +41,10 @@ export class ApiError extends Error {
  *
  * if (authError) {
  *   switch (authError.code) {
- *     case WristbandErrorCode.INVALID_SESSION_RESPONSE:
+ *     case 'INVALID_SESSION_RESPONSE':
  *       console.error('Session configuration error:', authError.message);
  *       break;
- *     case WristbandErrorCode.SESSION_FETCH_FAILED:
+ *     case 'SESSION_FETCH_FAILED':
  *       console.error('Session network error:', authError.message);
  *       break;
  *     default:
@@ -60,13 +60,13 @@ export class ApiError extends Error {
  * } catch (error) {
  *   if (error instanceof WristbandError) {
  *     switch (error.code) {
- *       case WristbandErrorCode.UNAUTHENTICATED:
+ *       case 'UNAUTHENTICATED':
  *         console.error('User not authenticated');
  *         break;
- *       case WristbandErrorCode.INVALID_TOKEN_RESPONSE:
+ *       case 'INVALID_TOKEN_RESPONSE':
  *         console.error('Token endpoint configuration error:', error.message);
  *         break;
- *       case WristbandErrorCode.TOKEN_FETCH_FAILED:
+ *       case 'TOKEN_FETCH_FAILED':
  *         console.error('Token network error:', error.message);
  *         break;
  *     }

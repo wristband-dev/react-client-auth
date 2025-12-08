@@ -15,11 +15,11 @@
   </p>
 </div>
 
-<br/>
+<br>
 
 ---
 
-<br/>
+<br>
 
 # Wristband Client-Side Authentication SDK for React
 
@@ -30,33 +30,81 @@
 
 The SDK handles authentication interactions in your app’s React frontend. It’s designed to work in tandem with your backend server that integrates with Wristband using the Backend Server Integration Pattern. The backend exposes a required Session Endpoint that the React SDK calls to initialize the app in the browser with an authenticated user session. The backend can also optionally expose a Token Endpoint, allowing the React SDK to retrieve access tokens and store them in its client-side cache for direct use in browser-based requests.
 
+<br>
+
 ---
+
+<br>
+
+## Table of Contents
+
+- [Migrating From Older SDK Versions](#migrating-from-older-sdk-versions)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [1) Use the Wristband Auth Provider](#1-use-the-wristband-auth-provider)
+  - [2) Use Auth and Session Hooks](#2-use-auth-and-session-hooks)
+  - [3) Use Token Hook (Optional)](#3-use-token-hook-optional)
+  - [4) Use Auth Utility Functions](#4-use-auth-utility-functions)
+- [Transforming Session Metadata](#transforming-session-metadata)
+- [Executing Custom Logic After Session Initialization](#executing-custom-logic-after-session-initialization)
+- [API Reference](#api-reference)
+  - [WristbandAuthProvider](#wristbandauthprovidertsessionmetadata)
+  - [Hooks](#hooks)
+  - [Utility Functions](#utility-functions)
+- [Questions](#questions)
+
+<br>
+
+---
+
+<br>
 
 ## Migrating From Older SDK Versions
 
 On an older version of our SDK? Check out our migration guide:
 
-- [Instructions for migrating to Version 2.x (latest)](migration/v2/README.md)
+- [Instructions for migrating to Version 3.x (latest)](migration/v3/README.md)
+- [Instructions for migrating to Version 2.x](migration/v2/README.md)
 - [Instructions for migrating to Version 1.x](migration/v1/README.md)
+
+<br>
+
+## Prerequisites
+
+> **⚡ Try Our Quickstart Guides!**
+>
+> For the fastest way to get started with authentication, follow our [Quick Start Guide](https://docs.wristband.dev/docs/auth-quick-start). It walks you through setting up Wristband authentication for your backend server and React frontend in minutes. Refer back to this README for comprehensive documentation and advanced usage patterns.
+
+Before installing the SDK, ensure your environment meets the following requirements:
+
+- [Node.js](https://nodejs.org/en) >= 20.0.0
+- [React](https://react.dev/) >= 17.0.0
+- Your preferred package manager (npm >= 9.6.0, yarn, pnpm, etc.)
 
 <br>
 
 ## Installation
 
-```sh
+```bash
+# npm
 npm install @wristband/react-client-auth
-```
 
-or 
-
-```sh
+# Or yarn
 yarn add @wristband/react-client-auth
+
+# Or pnpm
+pnpm add @wristband/react-client-auth
 ```
+
+<br>
 
 ## Usage
 
-> [!NOTE]
-> Important: Before using this SDK, you must have already implemented the required backend server endpoints for authentication in your server: Login, Logout, and Session. This SDK connects to those existing endpoints but does not implement them for you. Optionally, if you plan to use access tokens directly from the browser, then your backend server will also need to implement the Token Endpoint.
+> [!WARNING]
+> **Important:** Before using this SDK, you must have already implemented the required [backend server endpoints](https://docs.wristband.dev/docs/backend-server-integration) for authentication in your server: Login, Callback, Logout, and Session. This SDK connects to those existing endpoints but does not implement them for you. Optionally, if you plan to use access tokens directly from the browser, then your backend server will also need to implement the Token Endpoint.
+
+<br>
 
 ### 1) Use the Wristband Auth Provider
 
@@ -117,7 +165,7 @@ This hook provides authentication status information and functionality:
 - `isAuthenticated`: Boolean indicating if the user has an authenticated session.
 - `isLoading`: Boolean indicating if the authentication status is still being determined.
 - `authError`: WristbandError object containing error details when authentication fails, or `null` when no error has occurred.
-- `authStatus`: Enum value for convenience (`LOADING`, `AUTHENTICATED`, or `UNAUTHENTICATED`).
+- `authStatus`: String literal value for convenience (`LOADING`, `AUTHENTICATED`, or `UNAUTHENTICATED`).
 - `clearAuthData()`: Function that destroys all auth, session, and token data (auth status becomes `UNAUTHENTICATED`).
 
 Use this hook when you need to control access to protected content by checking authentication status.  This enables common patterns like conditional rendering of authenticated/unauthenticated views, route protection, or dynamic UI updates based on the user's auth status.
@@ -181,7 +229,7 @@ This hook provides access to the authenticated user's session data:
 
 - `userId`: The authenticated user's ID.
 - `tenantId`: The ID of the tenant that the authenticated user belongs to.
-- `metadata`: Opional custom session metadata provided by your backend, if applicable (profile info, roles, etc.)
+- `metadata`: Optional custom session metadata provided by your backend, if applicable (profile info, roles, etc.)
 - `updateMetadata()`: Function to modify the metadata object stored in the client-side React Context. This enables real-time UI updates with new metadata values, but it is limited to the current browser session only. Any changes made with this function will not persist across page refreshes or be synchronized to your backend server.
 
 Use this hook when you need access to the user data provided by your backend's Session Endpoint. It helps you build personalized experiences based on the specific user information your server makes available.
@@ -262,7 +310,7 @@ Alternatively, the React SDK can extract the access token from the authenticated
 
 #### useWristbandToken()
 
-The useWristbandToken() hook exposes functionality for maanging client-side access tokens:
+The useWristbandToken() hook exposes functionality for managing access tokens in the browser:
 
 - `getToken()`: Retrieves a valid access token for making authenticated API calls to resource servers. Returns a cached token if available and not expired, otherwise fetches a fresh token from the configured `tokenUrl` endpoint. The access token does not persist across page navigations or refreshes. Your server's Token Endpoint is responsible for refreshing expired tokens by using the user's session state.
 - `clearToken()`: Function to modify the metadata object stored in the client-side React Context. This enables real-time UI updates with new metadata values, but it is limited to the current browser session only. Any changes made with this function will not persist across page refreshes or be synchronized to your backend server.
@@ -382,6 +430,8 @@ export function ExampleApiComponent() {
 }
 ```
 
+<br>
+
 ## Transforming Session Metadata
 
 The `transformSessionMetadata` prop on the `WristbandAuthProvider` provides a flexible way to reshape the raw session metadata returned from your backend server into a more convenient format for your frontend application.
@@ -480,6 +530,8 @@ function UserDashboard() {
 }
 ```
 
+<br>
+
 ## Executing Custom Logic After Session Initialization
 
 The `onSessionSuccess` property on `WristbandAuthProvider` allows you to execute custom initialization logic when a user's session is successfully retrieved from your server's Session Endpoint. The function is executed after session data is fetched but before the Provider's internal state is updated, making it the perfect place for initialization logic that depends on the user's identity. This is useful for post-authentication tasks including data prefetching, service configuration, global state initialization, and more.
@@ -512,7 +564,7 @@ function App() {
 }
 ```
 
-<br/>
+<br>
 
 ## API Reference
 
@@ -564,7 +616,7 @@ export default function App() {
 | sessionUrl | string | Yes | The URL of your server's Session Endpoint, which returns an authenticated user's userId, tenantId, and any optional metadata. |
 | transformSessionMetadata | `(rawSessionMetadata: unknown) => TSessionMetadata` | No | Function to transform raw metadata from the session response before storing it in context. Useful for converting data types, adding computed properties, filtering unnecessary properties, and ensuring type safety. |
 
-<br/>
+<br>
 
 ### Hooks
 
@@ -593,15 +645,15 @@ function AuthHook() {
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | authError | `WristbandError` or `null` | An error object details when session fetching or authentication fails. Provides error codes and messages for debugging. Only populated when `disableRedirectOnUnauthenticated` is true; otherwise, users are redirected to login on errors. If no error is encountered, then the value is `null`. |
-| authStatus | `AuthStatus` (enum) | Represents the current authentication status.<br><br> Possible values: `LOADING`, `AUTHENTICATED`, or `UNAUTHENTICATED`. |
+| authStatus | `AuthStatus` | Represents the current authentication status.<br><br> Possible values: `LOADING`, `AUTHENTICATED`, or `UNAUTHENTICATED`. |
 | clearAuthData | `() => void` | This function clears all client-side auth state including authentication status, user data, session metadata, cached tokens, and errors. |
 | isAuthenticated | boolean | A boolean indicator that is `true` when the user is authenticated and `false` otherwise. |
 | isLoading | boolean | A boolean indicator that is `true` when the authentication status is still being determined (e.g., during the initial session check) and `false` once the status is determined. |
 
 In the event an `authError` occurs, the `WristbandError` can have any of the following error codes:
 
-| Wristband Error Code | Description |
-| -------------------- | ----------- |
+| WristbandErrorCode | Description |
+| ------------------ | ----------- |
 | `INVALID_LOGIN_URL` | An invalid login URL value was provided to the SDK. |
 | `INVALID_LOGOUT_URL` | An invalid logout URL value was provided to the SDK (primarily for `redirectToLogout()`). |
 | `INVALID_SESSION_RESPONSE` | The session endpoint response is missing required fields. |
@@ -610,9 +662,9 @@ In the event an `authError` occurs, the `WristbandError` can have any of the fol
 | `INVALID_TOKEN_URL` | An invalid token URL value was provided to the SDK (only occurs if using `getToken()`). |
 | `SESSION_FETCH_FAILED` | The session endpoint returned an error other than 401. |
 | `TOKEN_FETCH_FAILED` | The token endpoint returned an error other than 401. |
-| `UNAUTHENTICATED` | The user is not authenticated and cannot request a session or token (typicaly from a 401 error). |
+| `UNAUTHENTICATED` | The user is not authenticated and cannot request a session or token (typically from a 401 error). |
 
-<br/>
+<br>
 
 #### `useWristbandSession<TSessionMetadata>()`
 
@@ -648,7 +700,7 @@ function SessionHook() {
 | updateMetadata | `(newMetadata: Partial<TSessionMetadata>) => void` | A function that lets you update the metadata object with type-safe partial updates. The type parameter you provide to the hook ensures that any updates you make are compatible with your defined metadata structure. This only updates the client-side state and does not persist changes to the server. |
 | userId | string | The unique identifier for the authenticated user. |
 
-<br/>
+<br>
 
 #### `useWristbandToken()`
 
@@ -676,11 +728,19 @@ function TokenHook() {
 | clearToken | `() => void` | Clears the cached access token and forces the next getToken() call to fetch a fresh token, assuming that the user still has a valid session cookie. |
 | getToken | `() => void` | Retrieves a valid access token for making authenticated API calls to resource servers. Returns a cached token if available and not expired; otherwise fetches a fresh token from the configured "tokenUrl" endpoint. Your server's Token Endpoint should automatically handle token expiration and refresh using the user's session cookie. |
 
-<br/>
+<br>
 
 ### Utility Functions
 
-#### `redirectToLogin(loginUrl: string, config?: LoginRedirectConfig): void`
+The SDK provides utility functions for handling login and logout redirects as well as CSRF token extraction for use with HTTP clients like Fetch.
+
+#### redirectToLogin()
+
+```typescript
+function redirectToLogin(loginUrl: string, config?: LoginRedirectConfig): void
+```
+
+The `redirectToLogin()` function initiates a redirect to your specified Login Endpoint URL and appends relevant query parameters based on the provided configuration (browser only).
 
 ```typescript
 import { redirectToLogin } from '@wristband/react-client-auth';
@@ -689,7 +749,7 @@ function handleLogin() {
   redirectToLogin('https://your-server.com/api/auth/login', {
     loginHint: 'user@company.com',
     returnUrl: window.location.href,
-    tenantDomain: 'acme-corp',
+    tenantName: 'acme-corp',
     tenantCustomDomain: 'auth.acme.com'
   });
 }
@@ -700,18 +760,24 @@ function handleLogin() {
 | loginHint | string | No | Pre-fills the Tenant Login Page form with a specific username or email. Sent as the `login_hint` query parameter to your Login Endpoint. |
 | returnUrl | string | No | URL to redirect back to after successful authentication. Sent as the `return_url` query parameter to your Login Endpoint. |
 | tenantCustomDomain | string | No | Tenant custom domain for routing to the correct Tenant Login Page. Sent as the `tenant_custom_domain` query parameter to your Login Endpoint. |
-| tenantDomain | string | No | Tenant domain name for routing to the correct Tenant Login Page. Sent as the `tenant_domain` query parameter to your Login Endpoint. |
+| tenantName | string | No | Tenant name for routing to the correct Tenant Login Page. Sent as the `tenant_name` query parameter to your Login Endpoint. |
 
-<br/>
+<br>
 
-#### `redirectToLogout(logoutUrl: string, config?: LogoutRedirectConfig): void`
+#### redirectToLogout()
+
+```typescript
+function redirectToLogout(logoutUrl: string, config?: LogoutRedirectConfig): void
+```
+
+The `redirectToLogout()` function navigates the user to your specified Logout Endpoint URL and can append additional parameters as needed (browser only).
 
 ```typescript
 import { redirectToLogout } from '@wristband/react-client-auth';
 
 function handleLogout() {
   redirectToLogout('https://your-server.com/api/auth/logout', {
-    tenantDomain: 'acme-corp',
+    tenantName: 'acme-corp',
     tenantCustomDomain: 'auth.acme.com'
   });
 }
@@ -720,12 +786,64 @@ function handleLogout() {
 | Logout Redirect Config | Type | Required? | Description |
 | ---------------------- | ---- | --------- | ----------- |
 | tenantCustomDomain | string | No | Tenant custom domain for routing to the correct Tenant Login Page after logout. Sent as the `tenant_custom_domain` query parameter to your Logout Endpoint. |
-| tenantDomain | string | No | Tenant domain name for routing to the correct Tenant Login Page after logout. Sent as the `tenant_domain` query parameter to your Logout Endpoint. |
+| tenantName | string | No | Tenant domain name for routing to the correct Tenant Login Page after logout. Sent as the `tenant_name` query parameter to your Logout Endpoint. |
 
-<br/>
+<br>
+
+#### getCsrfToken()
+
+```typescript
+function getCsrfToken(cookieName?: string): string | undefined
+```
+
+The `getCsrfToken()` utility function extracts the CSRF token from a browser cookie. This is particularly useful when using the Fetch API or other HTTP clients that don't automatically handle CSRF tokens like Axios does.
+
+Use this function to retrieve the CSRF token and include it in your request headers for CSRF protection.
+```typescript
+import { getCsrfToken } from '@wristband/react-client-auth';
+
+async function makeApiCall() {
+  const csrfToken = getCsrfToken();
+  
+  const response = await fetch('/api/endpoint', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': csrfToken ?? ''
+    },
+    body: JSON.stringify({ data: 'example' })
+  });
+  
+  if (!response.ok) {
+    if ([401, 403].includes(response.status)) {
+      window.location.href = '/api/auth/login';
+      return;
+    }
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  
+  return await response.json();
+}
+```
+
+**Parameters:**
+- `cookieName` (optional): The name of the CSRF cookie. Defaults to `'CSRF-TOKEN'`.
+
+**Returns:**
+- `string | undefined`: The CSRF token value, or `undefined` if the cookie is not found or if running server-side.
+
+**Custom Cookie Name Example:**
+
+If your backend uses a different cookie name for CSRF tokens, you can specify it:
+```typescript
+const csrfToken = getCsrfToken('X-XSRF-TOKEN');
+```
+
+<br>
 
 ## Questions
 
 Reach out to the Wristband team at <support@wristband.dev> for any questions regarding this SDK.
 
-<br/>
+<br>

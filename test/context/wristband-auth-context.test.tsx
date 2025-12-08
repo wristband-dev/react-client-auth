@@ -3,15 +3,15 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 import { WristbandAuthContext } from '../../src/context/wristband-auth-context';
-import { AuthStatus } from '../../src/types/auth-provider-types';
+import { IWristbandAuthContext } from '../../src/types/auth-provider-types';
 
 describe('WristbandAuthContext', () => {
   it('provides context values to consuming components', () => {
     // Mock context values
-    const contextValue = {
+    const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
       isLoading: false,
-      authStatus: AuthStatus.AUTHENTICATED,
+      authStatus: 'AUTHENTICATED',
       authError: null,
       userId: 'test-user-id',
       tenantId: 'test-tenant-id',
@@ -41,7 +41,7 @@ describe('WristbandAuthContext', () => {
     );
 
     // Assert context values are correctly consumed
-    expect(screen.getByTestId('auth-status').textContent).toBe(AuthStatus.AUTHENTICATED.toString());
+    expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
     expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
   });
 
