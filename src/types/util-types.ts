@@ -3,6 +3,15 @@
  */
 export interface LoginRedirectConfig {
   /**
+   * Optional hint to bypass the Tenant Login Page and redirect directly to a specific identity provider.
+   *
+   * When provided, this value will be sent as the "idp_hint" query parameter to your Login Endpoint, which can
+   * instruct Wristband to skip tenant discovery and send the user directly to the specified identity provider.
+   *
+   * @example "google"
+   */
+  idpHint?: string;
+  /**
    * Optional hint to pre-fill the Tenant Login Page form with a specific username or email.
    *
    * When provided, this value will be sent as the "login_hint" query parameter, which can be used by your

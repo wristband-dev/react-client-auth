@@ -28,6 +28,13 @@ const reservedLogoutQueryKeys = ['tenant_name', 'tenant_custom_domain'];
  * });
  *
  * @example
+ * // Redirect with IdP hint (e.g. for social login)
+ * redirectToLogin('/api/auth/login', {
+ *   idpHint: 'google'
+ *   tenantName: 'acme-corp'
+ * });
+ *
+ * @example
  * // Redirect with custom return destination and tenant name
  * redirectToLogin('/api/auth/login', {
  *   returnUrl: 'https://app.example.com/dashboard',
@@ -68,6 +75,7 @@ export function redirectToLogin(loginUrl: string, config: LoginRedirectConfig = 
   });
 
   const queryParams: URLSearchParams = new URLSearchParams({
+    ...(config.idpHint ? { idp_hint: config.idpHint } : {}),
     ...(config.loginHint ? { login_hint: config.loginHint } : {}),
     ...(config.returnUrl ? { return_url: encodeURI(config.returnUrl) } : {}),
     ...(config.tenantName ? { tenant_name: config.tenantName } : {}),
