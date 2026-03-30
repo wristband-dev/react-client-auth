@@ -747,6 +747,7 @@ import { redirectToLogin } from '@wristband/react-client-auth';
 
 function handleLogin() {
   redirectToLogin('https://your-server.com/api/auth/login', {
+    idpHint: 'google',
     loginHint: 'user@company.com',
     returnUrl: window.location.href,
     tenantName: 'acme-corp',
@@ -757,6 +758,7 @@ function handleLogin() {
 
 | Login Redirect Config | Type | Required? | Description |
 | --------------------- | ---- | --------- | ----------- |
+| idpHint | string | No | Hints to Wristband which identity provider the user should be redirected to, bypassing the Tenant Login Page. Sent as the `idp_hint` query parameter to your Login Endpoint. |
 | loginHint | string | No | Pre-fills the Tenant Login Page form with a specific username or email. Sent as the `login_hint` query parameter to your Login Endpoint. |
 | returnUrl | string | No | URL to redirect back to after successful authentication. Sent as the `return_url` query parameter to your Login Endpoint. |
 | tenantCustomDomain | string | No | Tenant custom domain for routing to the correct Tenant Login Page. Sent as the `tenant_custom_domain` query parameter to your Login Endpoint. |

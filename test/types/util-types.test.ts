@@ -18,12 +18,14 @@ describe('Utility Types', () => {
 
     // Complete config with all properties
     const fullConfig: LoginRedirectConfig = {
+      idpHint: 'google',
       loginHint: 'admin@example.com',
       returnUrl: '/admin-dashboard',
       tenantName: 'acme-corp',
       tenantCustomDomain: 'auth.acme.com',
     };
 
+    expect(fullConfig.idpHint).toBe('google');
     expect(fullConfig.loginHint).toBe('admin@example.com');
     expect(fullConfig.returnUrl).toBe('/admin-dashboard');
     expect(fullConfig.tenantName).toBe('acme-corp');
@@ -61,12 +63,14 @@ describe('Utility Types', () => {
 
   it('should enforce property types for LoginRedirectConfig', () => {
     const config: LoginRedirectConfig = {
+      idpHint: 'google',
       loginHint: 'user@example.com',
       returnUrl: '/dashboard',
       tenantName: 'acme-corp',
       tenantCustomDomain: 'auth.acme.com',
     };
 
+    expect(typeof config.idpHint).toBe('string');
     expect(typeof config.loginHint).toBe('string');
     expect(typeof config.returnUrl).toBe('string');
     expect(typeof config.tenantName).toBe('string');

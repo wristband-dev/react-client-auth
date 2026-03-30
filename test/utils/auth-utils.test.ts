@@ -107,6 +107,17 @@ describe('Auth utilities', () => {
       expect(url).not.toContain('tenant_custom_domain=');
     });
 
+    it('should include idp hint if provided', async () => {
+      redirectToLogin('/api/auth/login', { idpHint: 'google' });
+      const url = window.location.href;
+      expect(url).toContain('/api/auth/login');
+      expect(url).toContain('idp_hint=google');
+      expect(url).not.toContain('login_hint=');
+      expect(url).not.toContain('return_url=');
+      expect(url).not.toContain('tenant_name=');
+      expect(url).not.toContain('tenant_custom_domain=');
+    });
+
     it('should include login hint if provided', async () => {
       redirectToLogin('/api/auth/login', { loginHint: 'user@example.com' });
       const url = window.location.href;
@@ -139,6 +150,7 @@ describe('Auth utilities', () => {
 
     it('should include all parameters if provided', async () => {
       redirectToLogin('/api/auth/login', {
+        idpHint: 'google',
         loginHint: 'user@example.com',
         returnUrl: 'https://app.example.com/dashboard',
         tenantName: 'acme-corp',
@@ -148,6 +160,7 @@ describe('Auth utilities', () => {
       // Since URLSearchParams doesn't guarantee order, we need to check for the presence of each parameter
       const url = window.location.href;
       expect(url).toContain('/api/auth/login?');
+      expect(url).toContain('idp_hint=google');
       expect(url).toContain('login_hint=user%40example.com');
       expect(url).toContain('return_url=https%3A%2F%2Fapp.example.com%2Fdashboard');
       expect(url).toContain('tenant_name=acme-corp');
