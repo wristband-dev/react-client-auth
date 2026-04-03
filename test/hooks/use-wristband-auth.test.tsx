@@ -13,8 +13,9 @@ describe('useWristbandAuth', () => {
     vi.resetAllMocks();
   });
 
-  it('should return authentication state and clearAuthData from context', () => {
+  it('should return authentication state, clearAuthData, and validateSession from context', () => {
     const mockClearAuthData = vi.fn();
+    const mockValidateSession = vi.fn();
 
     const contextValue: IWristbandAuthContext = {
       isAuthenticated: true,
@@ -28,6 +29,7 @@ describe('useWristbandAuth', () => {
       clearAuthData: mockClearAuthData,
       clearToken: vi.fn(),
       getToken: vi.fn(),
+      validateSession: mockValidateSession,
     };
 
     // Create a wrapper that provides the mock context
@@ -45,11 +47,12 @@ describe('useWristbandAuth', () => {
       isLoading: false,
       authStatus: 'AUTHENTICATED',
       clearAuthData: mockClearAuthData,
+      validateSession: mockValidateSession,
     });
 
     // Verify that the returned object only has the expected keys
     expect(Object.keys(result.current).sort()).toEqual(
-      ['authError', 'authStatus', 'clearAuthData', 'isAuthenticated', 'isLoading'].sort()
+      ['authError', 'authStatus', 'clearAuthData', 'isAuthenticated', 'isLoading', 'validateSession'].sort()
     );
   });
 
@@ -68,6 +71,7 @@ describe('useWristbandAuth', () => {
       clearAuthData: mockClearAuthData,
       clearToken: vi.fn(),
       getToken: vi.fn(),
+      validateSession: vi.fn(),
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -83,6 +87,39 @@ describe('useWristbandAuth', () => {
 
     // Verify the mock was called
     expect(mockClearAuthData).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call validateSession when invoked', async () => {
+    const mockValidateSession = vi.fn().mockResolvedValue(undefined);
+
+    const contextValue: IWristbandAuthContext = {
+      isAuthenticated: false,
+      isLoading: false,
+      authStatus: 'UNAUTHENTICATED',
+      authError: null,
+      userId: '',
+      tenantId: '',
+      metadata: {},
+      updateMetadata: vi.fn(),
+      clearAuthData: vi.fn(),
+      clearToken: vi.fn(),
+      getToken: vi.fn(),
+      validateSession: mockValidateSession,
+    };
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <WristbandAuthContext.Provider value={contextValue}>{children}</WristbandAuthContext.Provider>
+    );
+
+    const { result } = renderHook(() => useWristbandAuth(), { wrapper });
+
+    // Call validateSession
+    await act(async () => {
+      await result.current.validateSession();
+    });
+
+    // Verify the mock was called
+    expect(mockValidateSession).toHaveBeenCalledTimes(1);
   });
 
   it('should throw error when used outside of WristbandAuthProvider', () => {
@@ -128,6 +165,7 @@ describe('useWristbandAuth', () => {
       clearAuthData: mockClearAuthData,
       clearToken: vi.fn(),
       getToken: vi.fn(),
+      validateSession: vi.fn(),
     };
 
     // Render the test component with the context provider
@@ -165,6 +203,7 @@ describe('useWristbandAuth', () => {
           clearAuthData: vi.fn(),
           clearToken: vi.fn(),
           getToken: vi.fn(),
+          validateSession: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           authError: null,
@@ -172,6 +211,7 @@ describe('useWristbandAuth', () => {
           isLoading: true,
           authStatus: 'LOADING',
           clearAuthData: expect.any(Function),
+          validateSession: expect.any(Function),
         },
       },
       {
@@ -187,6 +227,7 @@ describe('useWristbandAuth', () => {
           clearAuthData: vi.fn(),
           clearToken: vi.fn(),
           getToken: vi.fn(),
+          validateSession: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           authError: null,
@@ -194,6 +235,7 @@ describe('useWristbandAuth', () => {
           isLoading: false,
           authStatus: 'AUTHENTICATED',
           clearAuthData: expect.any(Function),
+          validateSession: expect.any(Function),
         },
       },
       {
@@ -209,6 +251,7 @@ describe('useWristbandAuth', () => {
           clearAuthData: vi.fn(),
           clearToken: vi.fn(),
           getToken: vi.fn(),
+          validateSession: vi.fn(),
         } as IWristbandAuthContext,
         expected: {
           authError: null,
@@ -216,6 +259,7 @@ describe('useWristbandAuth', () => {
           isLoading: false,
           authStatus: 'UNAUTHENTICATED',
           clearAuthData: expect.any(Function),
+          validateSession: expect.any(Function),
         },
       },
     ];
@@ -247,6 +291,7 @@ describe('useWristbandAuth', () => {
       clearAuthData: vi.fn(),
       clearToken: vi.fn(),
       getToken: vi.fn(),
+      validateSession: vi.fn(),
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -273,6 +318,7 @@ describe('useWristbandAuth', () => {
       clearAuthData: vi.fn(),
       clearToken: vi.fn(),
       getToken: vi.fn(),
+      validateSession: vi.fn(),
     };
 
     const wrapper = ({ children }: { children: ReactNode }) => (
@@ -310,6 +356,7 @@ describe('useWristbandAuth', () => {
         clearAuthData: vi.fn(),
         clearToken: vi.fn(),
         getToken: vi.fn(),
+        validateSession: vi.fn(),
       };
 
       const wrapper = ({ children }: { children: ReactNode }) => (

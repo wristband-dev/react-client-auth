@@ -80,7 +80,8 @@ const API_RETRY_DELAY_MS = 100;
  * ```
  *
  * Once rendered, child components can access authentication state using the hooks:
- * - useWristbandAuth() - For authentication status (isAuthenticated, isLoading, authStatus, clearAuthData)
+ * - useWristbandAuth() - For authentication status (isAuthenticated, isLoading, authStatus, clearAuthData,
+ *   validateSession)
  * - useWristbandSession() - For session data (userId, tenantId, metadata)
  * - useWristbandToken() - For client-side token management, if applicable (getToken, clearToken)
  *
@@ -140,7 +141,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   }, []);
 
   /**
-   * Allows setting of session metadata even after initial fetchSession() occurs.
+   * Allows setting of session metadata even after initial validateSession() occurs.
    */
   const updateMetadata = useCallback((newMetadata: Partial<TSessionMetaData>) => {
     setMetadata((prevData) => ({ ...prevData, ...newMetadata }));
@@ -249,94 +250,123 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
   }, [isAuthenticated, accessToken, accessTokenExpiresAt]);
 
   /**
+   * Re-validates the authenticated user's session by re-fetching from the session endpoint
+   * and updating auth state. Called automatically on mount to bootstrap the application,
+   * and can be called manually in scenarios where authentication state may have changed
+   * without a full page reload, such as after completing an auth flow in a popup window
+   * or recovering from an unauthenticated state when `disableRedirectOnUnauthenticated` is `true`.
+   *
+   * On success, updates userId, tenantId, metadata, and sets isAuthenticated to true.
+   * On failure, either redirects to the login URL or sets authError and isAuthenticated to false
+   * depending on the value of `disableRedirectOnUnauthenticated`.
+   *
+   * @returns Promise that resolves when session validation is complete
+   * @throws {WristbandError} with code `INVALID_SESSION_RESPONSE` if the session endpoint
+   *   response is missing required fields (dev configuration error — not retried)
+   * @throws {WristbandError} with code `UNAUTHENTICATED` if the session endpoint returns 401
+   * @throws {WristbandError} with code `SESSION_FETCH_FAILED` if the session endpoint returns
+   *   a non-401 error after all retry attempts are exhausted
+   *
+   * @example
+   * ```typescript
+   * const { validateSession } = useWristbandAuth();
+   *
+   * const handleLoginSuccess = async () => {
+   *   await validateSession();
+   *   navigate('/dashboard');
+   * };
+   * ```
+   */
+  const validateSession = useCallback(async () => {
+    setIsLoading(true);
+    let lastError: WristbandError | null = null;
+
+    for (let attempt = 1; attempt <= MAX_API_ATTEMPTS; attempt++) {
+      try {
+        // The session API will let React know if the user has a previously authenticated session.
+        // If so, it will initialize session data.
+        const response = await apiClient.get<SessionResponse>(validatedSessionUrl, {
+          csrfCookieName,
+          csrfHeaderName,
+        });
+        const { userId, tenantId, metadata: rawMetadata } = response.data;
+
+        if (!userId || !userId.trim()) {
+          throw new WristbandError(
+            'INVALID_SESSION_RESPONSE',
+            'Session Endpoint response is missing required field: "userId"'
+          );
+        }
+
+        if (!tenantId || !tenantId.trim()) {
+          throw new WristbandError(
+            'INVALID_SESSION_RESPONSE',
+            'Session Endpoint response is missing required field: "tenantId"'
+          );
+        }
+
+        // Execute side effects callback before updating state if provided
+        if (onSessionSuccess) {
+          await Promise.resolve(onSessionSuccess(response.data));
+        }
+
+        // Apply transformation if provided
+        if (rawMetadata) {
+          setMetadata(
+            transformSessionMetadata ? transformSessionMetadata(rawMetadata) : (rawMetadata as TSessionMetaData)
+          );
+        }
+
+        // Update remaining context state last
+        setTenantId(tenantId);
+        setUserId(userId);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        setAuthError(null);
+        return;
+      } catch (error) {
+        // Always bubble up invalid response errors (represents a dev configuration error)
+        if (error instanceof WristbandError) {
+          throw error;
+        }
+
+        if (isUnauthorizedError(error)) {
+          lastError = new WristbandError('UNAUTHENTICATED', 'User is not authenticated', error);
+          break;
+        }
+
+        // If it's a non-401 4xx error, bail early (don't retry client errors)
+        if (is4xxError(error)) {
+          lastError = new WristbandError('SESSION_FETCH_FAILED', 'Failed to fetch session', error);
+          break;
+        }
+
+        // If this is the last attempt, don't delay
+        if (attempt === MAX_API_ATTEMPTS) {
+          lastError = new WristbandError('SESSION_FETCH_FAILED', 'Failed to fetch session', error);
+          break;
+        }
+
+        // Wait before retrying (only for 5xx errors and network issues)
+        await delay(API_RETRY_DELAY_MS);
+      }
+    }
+
+    if (disableRedirectOnUnauthenticated) {
+      setAuthError(lastError);
+      setIsAuthenticated(false);
+      setIsLoading(false);
+    } else {
+      // Preserve the current page for when the user returns after re-authentication.
+      window.location.href = resolvedLoginUrl;
+    }
+  }, []);
+
+  /**
    * Bootstrap the application with the authenticated user's session data via session cookie.
    */
   useEffect(() => {
-    const fetchSession = async () => {
-      let lastError: WristbandError | null = null;
-
-      for (let attempt = 1; attempt <= MAX_API_ATTEMPTS; attempt++) {
-        try {
-          // The session API will let React know if the user has a previously authenticated session.
-          // If so, it will initialize session data.
-          const response = await apiClient.get<SessionResponse>(validatedSessionUrl, {
-            csrfCookieName,
-            csrfHeaderName,
-          });
-          const { userId, tenantId, metadata: rawMetadata } = response.data;
-
-          if (!userId || !userId.trim()) {
-            throw new WristbandError(
-              'INVALID_SESSION_RESPONSE',
-              'Session Endpoint response is missing required field: "userId"'
-            );
-          }
-
-          if (!tenantId || !tenantId.trim()) {
-            throw new WristbandError(
-              'INVALID_SESSION_RESPONSE',
-              'Session Endpoint response is missing required field: "tenantId"'
-            );
-          }
-
-          // Execute side effects callback before updating state if provided
-          if (onSessionSuccess) {
-            await Promise.resolve(onSessionSuccess(response.data));
-          }
-
-          // Apply transformation if provided
-          if (rawMetadata) {
-            setMetadata(
-              transformSessionMetadata ? transformSessionMetadata(rawMetadata) : (rawMetadata as TSessionMetaData)
-            );
-          }
-
-          // Update remaining context state last
-          setTenantId(tenantId);
-          setUserId(userId);
-          setIsAuthenticated(true);
-          setIsLoading(false);
-          setAuthError(null);
-          return;
-        } catch (error) {
-          // Always bubble up invalid response errors (represents a dev configuration error)
-          if (error instanceof WristbandError) {
-            throw error;
-          }
-
-          if (isUnauthorizedError(error)) {
-            lastError = new WristbandError('UNAUTHENTICATED', 'User is not authenticated', error);
-            break;
-          }
-
-          // If it's a non-401 4xx error, bail early (don't retry client errors)
-          if (is4xxError(error)) {
-            lastError = new WristbandError('SESSION_FETCH_FAILED', 'Failed to fetch session', error);
-            break;
-          }
-
-          // If this is the last attempt, don't delay
-          if (attempt === MAX_API_ATTEMPTS) {
-            lastError = new WristbandError('SESSION_FETCH_FAILED', 'Failed to fetch session', error);
-            break;
-          }
-
-          // Wait before retrying (only for 5xx errors and network issues)
-          await delay(API_RETRY_DELAY_MS);
-        }
-      }
-
-      if (disableRedirectOnUnauthenticated) {
-        setAuthError(lastError);
-        setIsAuthenticated(false);
-        setIsLoading(false);
-      } else {
-        // Preserve the current page for when the user returns after re-authentication.
-        window.location.href = resolvedLoginUrl;
-      }
-    };
-
-    fetchSession();
+    validateSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -354,6 +384,7 @@ export function WristbandAuthProvider<TSessionMetaData = unknown>({
         tenantId,
         updateMetadata,
         userId,
+        validateSession,
       }}
     >
       {children}

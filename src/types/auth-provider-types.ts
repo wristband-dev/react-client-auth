@@ -134,6 +134,23 @@ export interface IWristbandAuthContext<TSessionMetadata = unknown> {
    * Available only when authentication is successful.
    */
   userId: string;
+  /**
+   * Re-validates the authenticated user's session by re-fetching from the session endpoint
+   * and updating auth state. Useful in scenarios where authentication state may have changed
+   * without a full page reload, such as after completing an auth flow in a popup window or
+   * recovering from an unauthenticated state when `disableRedirectOnUnauthenticated` is `true`.
+   *
+   * @example
+   * ```typescript
+   * const { validateSession } = useWristbandAuth();
+   *
+   * const handleLoginSuccess = async () => {
+   *   await validateSession();
+   *   navigate('/dashboard');
+   * };
+   * ```
+   */
+  validateSession: () => Promise<void>;
 }
 
 export interface IWristbandAuthProviderProps<TSessionMetadata = unknown>
