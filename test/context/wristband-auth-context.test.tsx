@@ -20,6 +20,7 @@ describe('WristbandAuthContext', () => {
       clearAuthData: vi.fn(),
       clearToken: vi.fn(),
       getToken: vi.fn(),
+      validateSession: vi.fn(),
     };
 
     // Test consumer component

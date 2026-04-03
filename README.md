@@ -46,8 +46,11 @@ The SDK handles authentication interactions in your app’s React frontend. It�
   - [2) Use Auth and Session Hooks](#2-use-auth-and-session-hooks)
   - [3) Use Token Hook (Optional)](#3-use-token-hook-optional)
   - [4) Use Auth Utility Functions](#4-use-auth-utility-functions)
+- [Typed Session Metadata](#typed-session-metadata)
 - [Transforming Session Metadata](#transforming-session-metadata)
 - [Executing Custom Logic After Session Initialization](#executing-custom-logic-after-session-initialization)
+- [Revalidating the Session](#revalidating-the-session)
+- [Clearing Authentication Data](#clearing-authentication-data)
 - [API Reference](#api-reference)
   - [WristbandAuthProvider](#wristbandauthprovidertsessionmetadata)
   - [Hooks](#hooks)
@@ -167,6 +170,7 @@ This hook provides authentication status information and functionality:
 - `authError`: WristbandError object containing error details when authentication fails, or `null` when no error has occurred.
 - `authStatus`: String literal value for convenience (`LOADING`, `AUTHENTICATED`, or `UNAUTHENTICATED`).
 - `clearAuthData()`: Function that destroys all auth, session, and token data (auth status becomes `UNAUTHENTICATED`).
+- `validateSession()`: Async function that re-fetches the session from your backend and updates auth state. Useful in scenarios where authentication state may have changed without a full page reload, such as after completing an auth flow in a popup window or recovering from an unauthenticated state when `disableRedirectOnUnauthenticated` is `true`.
 
 Use this hook when you need to control access to protected content by checking authentication status.  This enables common patterns like conditional rendering of authenticated/unauthenticated views, route protection, or dynamic UI updates based on the user's auth status.
 
@@ -174,7 +178,7 @@ Use this hook when you need to control access to protected content by checking a
 import { useWristbandAuth } from '@wristband/react-client-auth';
 
 function AuthStatus() {
-  const { authError, isAuthenticated, isLoading, authStatus, clearAuthData } = useWristbandAuth();
+  const { authError, isAuthenticated, isLoading, authStatus } = useWristbandAuth();
   
   if (isLoading) {
     return <div>Checking authentication status...</div>;
@@ -194,30 +198,6 @@ function AuthStatus() {
           <p>Error message: {authError.message}</p>
         </>
       )}
-    </div>
-  );
-}
-```
-
-The `clearAuthData()` function permanently clears all client-side auth state, session data, and token data. You can optionally use this when you need to completely reset the SDK state, typically for testing, error recovery, or when implementing custom logout flows. Note that this only clears React state and does not invalidate session cookies nor redirect the user. For standard logout, redirect to your server's Logout Endpoint instead.
-
-```typescript
-import { redirectToLogin, useWristbandAuth } from '@wristband/react-client-auth';
-
-function ClearAuth() {
-  const { clearAuthData } = useWristbandAuth();
-  
-  const reauthenticate = () => {
-    clearAuthData();
-    redirectToLogin('https://your-server.com/api/auth/login');
-  };
-  
-  return (
-    <div>
-      <h2>Clear Authentication Data</h2>
-      <button onClick={() => reauthenticate()}>
-        Re-Authenticate
-      </button>
     </div>
   );
 }
@@ -263,45 +243,6 @@ function UserProfile() {
 }
 ```
 
-For TypeScript applications, you can leverage type safety when working with session metadata. By providing a type parameter to the `useWristbandSession` hook, you can ensure that your metadata object and update functions are properly typed. This approach ensures proper IDE autocomplete suggestions for metadata properties as well as compile-time type checking for the values you pass to `updateMetadata`.
-
-```typescript
-import { useWristbandSession } from '@wristband/react-client-auth';
-
-interface UserPreferences {
-  theme: 'light' | 'dark';
-  notifications: boolean;
-  language: string;
-}
-
-function PreferencesPanel() {
-  const { metadata, updateMetadata } = useWristbandSession<UserPreferences>();
-  
-  const toggleTheme = () => {
-    const newTheme = metadata.theme === 'light' ? 'dark' : 'light';
-    updateMetadata({ theme: newTheme });
-  };
-  
-  return (
-    <div>
-      <h2>Your Preferences</h2>
-      <button onClick={toggleTheme}>
-        Switch to {metadata.theme === 'light' ? 'Dark' : 'Light'} Mode
-      </button>
-      
-      <label>
-        <input 
-          type="checkbox"
-          checked={metadata.notifications}
-          onChange={(e) => updateMetadata({ notifications: e.target.checked })}
-        />
-        Enable Notifications
-      </label>
-    </div>
-  );
-}
-```
-
 ### 3) Use Token Hook (Optional)
 
 When following Wristband’s backend server integration pattern, the recommended approach is to protect your backend APIs by relying solely on the session cookie, which the browser automatically includes with each request. Your backend should use middleware to validate the session, verify the CSRF token, and refresh expired tokens if necessary. This is the most secure way to protect your backend.
@@ -313,7 +254,7 @@ Alternatively, the React SDK can extract the access token from the authenticated
 The useWristbandToken() hook exposes functionality for managing access tokens in the browser:
 
 - `getToken()`: Retrieves a valid access token for making authenticated API calls to resource servers. Returns a cached token if available and not expired, otherwise fetches a fresh token from the configured `tokenUrl` endpoint. The access token does not persist across page navigations or refreshes. Your server's Token Endpoint is responsible for refreshing expired tokens by using the user's session state.
-- `clearToken()`: Function to modify the metadata object stored in the client-side React Context. This enables real-time UI updates with new metadata values, but it is limited to the current browser session only. Any changes made with this function will not persist across page refreshes or be synchronized to your backend server.
+- `clearToken()`: Clears the cached access token and forces the next getToken() call to fetch a fresh token, assuming that the user still has a valid session cookie.
 
 In order to use this hook, you must first configure the `tokenUrl` property on the `WristbandAuthProvider` to point to your server's Token Endpoint:
 
@@ -426,6 +367,49 @@ export function ExampleApiComponent() {
     <button onClick={executeServerApiCall}>
       Get Resource
     </button>
+  );
+}
+```
+
+<br>
+
+## Typed Session Metadata
+
+For TypeScript applications, you can leverage type safety when working with session metadata. By providing a type parameter to the `useWristbandSession` hook, you can ensure that your metadata object and update functions are properly typed. This approach ensures proper IDE autocomplete suggestions for metadata properties as well as compile-time type checking for the values you pass to `updateMetadata`.
+
+```typescript
+import { useWristbandSession } from '@wristband/react-client-auth';
+ 
+interface UserPreferences {
+  theme: 'light' | 'dark';
+  notifications: boolean;
+  language: string;
+}
+ 
+function PreferencesPanel() {
+  const { metadata, updateMetadata } = useWristbandSession<UserPreferences>();
+  
+  const toggleTheme = () => {
+    const newTheme = metadata.theme === 'light' ? 'dark' : 'light';
+    updateMetadata({ theme: newTheme });
+  };
+  
+  return (
+    <div>
+      <h2>Your Preferences</h2>
+      <button onClick={toggleTheme}>
+        Switch to {metadata.theme === 'light' ? 'Dark' : 'Light'} Mode
+      </button>
+      
+      <label>
+        <input 
+          type="checkbox"
+          checked={metadata.notifications}
+          onChange={(e) => updateMetadata({ notifications: e.target.checked })}
+        />
+        Enable Notifications
+      </label>
+    </div>
   );
 }
 ```
@@ -566,6 +550,105 @@ function App() {
 
 <br>
 
+## Revalidating the Session
+
+In some authentication flows, the user completes login in a separate context (such as a popup window) without triggering a full page reload in the main application. In these cases, the `WristbandAuthProvider` won't automatically detect that the user is now authenticated because it only fetches the session on initial mount.
+
+The `validateSession()` function from `useWristbandAuth()` solves this by allowing you to manually re-fetch the session and update the auth state at any point after the provider has mounted.
+
+### Popup Login Example
+
+A common pattern is to open a popup window that completes the OAuth flow, then use `postMessage` to notify the parent window when authentication is successful. The parent window can then call `validateSession()` to refresh its auth state and navigate to the protected page.
+
+```typescript
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useWristbandAuth } from '@wristband/react-client-auth';
+
+function LoginPage() {
+  const { validateSession } = useWristbandAuth();
+  const navigate = useNavigate();
+
+  const handleLoginSuccess = useCallback(async () => {
+    // Re-fetch session after popup login completes
+    await validateSession();
+    navigate('/dashboard');
+  }, [validateSession, navigate]);
+
+  const openLoginPopup = () => {
+    const popup = window.open('/api/auth/login-with-popup', 'login-popup', 'width=500,height=650');
+
+    window.addEventListener('message', async (event) => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'login_success') {
+        return;
+      }
+      popup?.close();
+      await handleLoginSuccess();
+    }, { once: true });
+  };
+
+  return (
+    <button onClick={openLoginPopup}>
+      Log in with Google
+    </button>
+  );
+}
+```
+
+### Re-Authenticating After an Unauthenticated State
+
+If your app uses `disableRedirectOnUnauthenticated={true}`, you may have pages that serve both authenticated and unauthenticated users. In these cases, you can call `validateSession()` at any point to check whether the user has since authenticated (e.g., after they complete a login flow inline on the page).
+
+```typescript
+import { useWristbandAuth } from '@wristband/react-client-auth';
+
+function PublicPage() {
+  const { isAuthenticated, validateSession } = useWristbandAuth();
+
+  return (
+    <div>
+      {isAuthenticated ? (
+        <p>Welcome back!</p>
+      ) : (
+        <button onClick={() => validateSession()}>
+          Check if I'm logged in
+        </button>
+      )}
+    </div>
+  );
+}
+```
+
+<br>
+
+## Clearing Authentication Data
+
+The `clearAuthData()` function from `useWristbandAuth()` permanently clears all client-side auth state, session data, and token data. You can optionally use this when you need to completely reset the SDK state, typically for testing, error recovery, or when implementing custom logout flows. Note that this only clears React state and does not invalidate session cookies nor redirect the user. For standard logout, redirect to your server's Logout Endpoint instead.
+ 
+```typescript
+import { redirectToLogin, useWristbandAuth } from '@wristband/react-client-auth';
+ 
+function ClearAuth() {
+  const { clearAuthData } = useWristbandAuth();
+  
+  const reauthenticate = () => {
+    clearAuthData();
+    redirectToLogin('https://your-server.com/api/auth/login');
+  };
+  
+  return (
+    <div>
+      <h2>Clear Authentication Data</h2>
+      <button onClick={() => reauthenticate()}>
+        Re-Authenticate
+      </button>
+    </div>
+  );
+}
+```
+
+<br>
+
 ## API Reference
 
 ### `<WristbandAuthProvider<TSessionMetadata>>`
@@ -626,7 +709,7 @@ export default function App() {
 import { useWristbandAuth } from '@wristband/react-client-auth';
 
 function AuthHook() {
-  const { authError, authStatus, clearAuthData, isAuthenticated, isLoading } = useWristbandAuth();
+  const { authError, authStatus, clearAuthData, isAuthenticated, isLoading, validateSession } = useWristbandAuth();
   
   return (
     <div>
@@ -636,6 +719,9 @@ function AuthHook() {
       <p>isLoading: {isLoading}</p>
       <button onClick={() => clearAuthData()}>
         Clear Auth Data
+      </button>
+      <button onClick={() => validateSession()}>
+        Validate Session
       </button>
     </div>
   );
@@ -649,6 +735,7 @@ function AuthHook() {
 | clearAuthData | `() => void` | This function clears all client-side auth state including authentication status, user data, session metadata, cached tokens, and errors. |
 | isAuthenticated | boolean | A boolean indicator that is `true` when the user is authenticated and `false` otherwise. |
 | isLoading | boolean | A boolean indicator that is `true` when the authentication status is still being determined (e.g., during the initial session check) and `false` once the status is determined. |
+| validateSession | `() => Promise<void>` | Re-fetches the session from your backend's Session Endpoint and updates auth state. Sets `isLoading` to `true` during the request. On success, updates `userId`, `tenantId`, `metadata`, and sets `isAuthenticated` to `true`. On failure, either redirects to the login URL or sets `authError` and `isAuthenticated` to `false` depending on the value of `disableRedirectOnUnauthenticated`. |
 
 In the event an `authError` occurs, the `WristbandError` can have any of the following error codes:
 
@@ -726,7 +813,7 @@ function TokenHook() {
 | Field | Type | Description |
 | ----- | ---- | ----------- |
 | clearToken | `() => void` | Clears the cached access token and forces the next getToken() call to fetch a fresh token, assuming that the user still has a valid session cookie. |
-| getToken | `() => void` | Retrieves a valid access token for making authenticated API calls to resource servers. Returns a cached token if available and not expired; otherwise fetches a fresh token from the configured "tokenUrl" endpoint. Your server's Token Endpoint should automatically handle token expiration and refresh using the user's session cookie. |
+| getToken | `() => Promise<string>` | Retrieves a valid access token for making authenticated API calls to resource servers. Returns a cached token if available and not expired; otherwise fetches a fresh token from the configured "tokenUrl" endpoint. Your server's Token Endpoint should automatically handle token expiration and refresh using the user's session cookie. |
 
 <br>
 

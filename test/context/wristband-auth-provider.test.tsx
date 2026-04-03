@@ -627,6 +627,252 @@ describe('WristbandAuthProvider', () => {
     });
   });
 
+  describe('validateSession', () => {
+    // Test consumer that exposes validateSession for manual invocation
+    const TestConsumerWithValidateSession = () => {
+      const context = useContext(WristbandAuthContext);
+      return (
+        <div>
+          <div data-testid="auth-error">{context?.authError?.message || 'no-error'}</div>
+          <div data-testid="auth-error-code">{context?.authError?.code || 'no-code'}</div>
+          <div data-testid="auth-status">{context?.authStatus}</div>
+          <div data-testid="is-authenticated">{String(context?.isAuthenticated)}</div>
+          <div data-testid="is-loading">{String(context?.isLoading)}</div>
+          <div data-testid="user-id">{context?.userId || 'no-user-id'}</div>
+          <div data-testid="tenant-id">{context?.tenantId || 'no-tenant-id'}</div>
+          <div data-testid="metadata">{JSON.stringify(context?.metadata)}</div>
+          <button data-testid="validate-session" onClick={() => context?.validateSession?.()}>
+            Validate Session
+          </button>
+        </div>
+      );
+    };
+
+    it('re-validates successfully after being unauthenticated', async () => {
+      const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456', metadata: { name: 'Test User' } };
+
+      const unauthorizedError = new ApiError('Unauthorized');
+      unauthorizedError.status = 401;
+
+      // First call (on mount) fails with 401, second call (manual validateSession) succeeds
+      vi.mocked(apiClient.get)
+        .mockRejectedValueOnce(unauthorizedError)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+      render(
+        <WristbandAuthProvider {...defaultProps} disableRedirectOnUnauthenticated={true}>
+          <TestConsumerWithValidateSession />
+        </WristbandAuthProvider>
+      );
+
+      // Wait for initial unauthenticated state
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('UNAUTHENTICATED');
+      });
+
+      // Manually call validateSession (simulates post-popup-login scenario)
+      await act(async () => screen.getByTestId('validate-session').click());
+
+      // Should now be authenticated
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('AUTHENTICATED');
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+        expect(screen.getByTestId('auth-error').textContent).toBe('no-error');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('no-code');
+        expect(screen.getByTestId('user-id').textContent).toBe('user-123');
+        expect(screen.getByTestId('tenant-id').textContent).toBe('tenant-456');
+        expect(JSON.parse(screen.getByTestId('metadata').textContent || '{}')).toEqual(mockSessionData.metadata);
+      });
+
+      expect(apiClient.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('sets isLoading to true during re-validation', async () => {
+      const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456', metadata: { name: 'Test User' } };
+
+      // First call (on mount) succeeds
+      vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+      render(
+        <WristbandAuthProvider {...defaultProps}>
+          <TestConsumerWithValidateSession />
+        </WristbandAuthProvider>
+      );
+
+      // Wait for initial authenticated state
+      await waitFor(() => {
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      });
+
+      // Set up a slow second call so we can observe the loading state
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let resolveSession: (value: any) => void;
+      vi.mocked(apiClient.get).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSession = resolve;
+          })
+      );
+
+      // Trigger validateSession
+      act(() => {
+        screen.getByTestId('validate-session').click();
+      });
+
+      // Should immediately be in loading state
+      await waitFor(() => {
+        expect(screen.getByTestId('is-loading').textContent).toBe('true');
+      });
+
+      // Resolve the session call
+      await act(async () => {
+        resolveSession!({ data: mockSessionData, status: 200, headers: new Headers() });
+      });
+
+      // Should be back to authenticated and not loading
+      await waitFor(() => {
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('true');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+      });
+    });
+
+    it('redirects to login when re-validation fails and redirect is enabled', async () => {
+      const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456', metadata: { name: 'Test User' } };
+
+      const unauthorizedError = new ApiError('Unauthorized');
+      unauthorizedError.status = 401;
+
+      const resolvedLoginUrl = '/api/auth/login?return_url=https%3A%2F%2Fcurrent-page.com%2Fpath';
+      vi.mocked(authProviderUtils.resolveAuthProviderLoginUrl).mockReturnValue(resolvedLoginUrl);
+
+      // First call (on mount) succeeds, second call (manual validateSession) fails
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockRejectedValueOnce(unauthorizedError);
+
+      render(
+        <WristbandAuthProvider {...defaultProps}>
+          <TestConsumerWithValidateSession />
+        </WristbandAuthProvider>
+      );
+
+      // Wait for initial authenticated state
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+
+      // Manually call validateSession
+      await act(async () => screen.getByTestId('validate-session').click());
+
+      // Should redirect to login
+      await waitFor(() => {
+        expect(window.location.href).toBe(resolvedLoginUrl);
+      });
+    });
+
+    it('sets unauthenticated state when re-validation fails and redirect is disabled', async () => {
+      const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456', metadata: { name: 'Test User' } };
+
+      const unauthorizedError = new ApiError('Unauthorized');
+      unauthorizedError.status = 401;
+
+      // First call (on mount) succeeds, second call (manual validateSession) fails
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockRejectedValueOnce(unauthorizedError);
+
+      render(
+        <WristbandAuthProvider {...defaultProps} disableRedirectOnUnauthenticated={true}>
+          <TestConsumerWithValidateSession />
+        </WristbandAuthProvider>
+      );
+
+      // Wait for initial authenticated state
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+
+      // Manually call validateSession
+      await act(async () => screen.getByTestId('validate-session').click());
+
+      // Should be unauthenticated with error set
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('UNAUTHENTICATED');
+        expect(screen.getByTestId('is-authenticated').textContent).toBe('false');
+        expect(screen.getByTestId('is-loading').textContent).toBe('false');
+        expect(screen.getByTestId('auth-error-code').textContent).toBe('UNAUTHENTICATED');
+        expect(window.location.href).toBe('https://current-page.com/path');
+      });
+    });
+
+    it('calls onSessionSuccess again on manual re-validation', async () => {
+      const mockSessionData = { userId: 'user-123', tenantId: 'tenant-456', metadata: { name: 'Test User' } };
+      const onSessionSuccessMock = vi.fn();
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+      render(
+        <WristbandAuthProvider {...defaultProps} onSessionSuccess={onSessionSuccessMock}>
+          <TestConsumerWithValidateSession />
+        </WristbandAuthProvider>
+      );
+
+      // Wait for initial authenticated state
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      expect(onSessionSuccessMock).toHaveBeenCalledTimes(1);
+
+      // Manually call validateSession
+      await act(async () => screen.getByTestId('validate-session').click());
+
+      // onSessionSuccess should have been called again
+      await waitFor(() => expect(onSessionSuccessMock).toHaveBeenCalledTimes(2));
+      expect(onSessionSuccessMock).toHaveBeenCalledWith(mockSessionData);
+    });
+
+    it('applies transformSessionMetadata on manual re-validation', async () => {
+      const mockSessionData = {
+        userId: 'user-123',
+        tenantId: 'tenant-456',
+        metadata: { displayName: 'Test User', userRole: 'admin' },
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformFn = vi.fn((rawMetadata: any) => ({
+        name: rawMetadata.displayName,
+        role: rawMetadata.userRole,
+      }));
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() })
+        .mockResolvedValueOnce({ data: mockSessionData, status: 200, headers: new Headers() });
+
+      render(
+        <WristbandAuthProvider {...defaultProps} transformSessionMetadata={transformFn}>
+          <TestConsumerWithValidateSession />
+        </WristbandAuthProvider>
+      );
+
+      // Wait for initial authenticated state
+      await waitFor(() => expect(screen.getByTestId('is-authenticated').textContent).toBe('true'));
+      expect(transformFn).toHaveBeenCalledTimes(1);
+
+      // Manually call validateSession
+      await act(async () => screen.getByTestId('validate-session').click());
+
+      // Transform should have been called again and metadata updated
+      await waitFor(() => {
+        expect(transformFn).toHaveBeenCalledTimes(2);
+        expect(JSON.parse(screen.getByTestId('metadata').textContent || '{}')).toEqual({
+          name: 'Test User',
+          role: 'admin',
+        });
+      });
+    });
+  });
+
   describe('authError state management', () => {
     it('exposes authError in context when disableRedirectOnUnauthenticated is true', async () => {
       const error = new ApiError('Unauthorized');
@@ -1687,7 +1933,7 @@ describe('WristbandAuthProvider', () => {
     });
   });
 
-  describe('fetchSession retry logic', () => {
+  describe('validateSession retry logic', () => {
     it('retries on 5xx server errors and succeeds on second attempt', async () => {
       // Mock console.log to prevent error output in tests
       console.log = vi.fn();
